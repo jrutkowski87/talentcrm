@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-gray-100 text-gray-900;
+}
+
+/* Prevent SVG icons from blowing up if Tailwind classes fail to load */
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+svg[viewBox="0 0 24 24"] {
+  max-width: 2.5rem;
+  max-height: 2.5rem;
+}
