@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { snakeToTitle, formatCurrency } from '@/lib/format';
 
 /* ------------------------------------------------------------------ */
 /*  Type definitions                                                   */
@@ -45,10 +46,10 @@ interface Client {
 
 interface Deal {
   id: string;
-  name: string;
+  deal_name: string;
   client_id: string;
   status: string;
-  value: number;
+  fee_total: number | null;
 }
 
 interface SubBrandFormData {
@@ -616,17 +617,22 @@ export default function ClientDetailPage() {
                   {deals.map((deal) => (
                     <tr key={deal.id} className="hover:bg-gray-50">
                       <td className="px-5 py-3 text-sm text-gray-900 font-medium">
-                        {deal.name}
+                        <Link href={`/deals/${deal.id}`} className="hover:text-indigo-600">
+                          {deal.deal_name}
+                        </Link>
                       </td>
                       <td className="px-5 py-3">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700">
-                          {deal.status}
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          deal.status === 'complete' ? 'bg-green-50 text-green-700' :
+                          deal.status === 'dead' ? 'bg-red-50 text-red-700' :
+                          deal.status === 'archived' ? 'bg-gray-100 text-gray-600' :
+                          'bg-blue-50 text-blue-700'
+                        }`}>
+                          {snakeToTitle(deal.status)}
                         </span>
                       </td>
                       <td className="px-5 py-3 text-sm text-gray-700 text-right">
-                        {typeof deal.value === 'number'
-                          ? `$${deal.value.toLocaleString()}`
-                          : '--'}
+                        {formatCurrency(deal.fee_total)}
                       </td>
                     </tr>
                   ))}

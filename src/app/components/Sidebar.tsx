@@ -80,6 +80,7 @@ export default function Sidebar() {
   const { collapsed, toggle } = useSidebar();
   const [alertCount, setAlertCount] = useState(0);
   const [showAlerts, setShowAlerts] = useState(false);
+  const [taskBadge, setTaskBadge] = useState(0);
 
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/';
@@ -90,6 +91,15 @@ export default function Sidebar() {
     fetch('/api/alerts')
       .then(r => r.json())
       .then(d => { if (d.success) setAlertCount(d.count || 0); })
+      .catch(() => {});
+
+    fetch('/api/tasks/upcoming?days=1&limit=1')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.data?.counts) {
+          setTaskBadge(d.data.counts.overdue + d.data.counts.due_today);
+        }
+      })
       .catch(() => {});
   }, []);
 
@@ -105,6 +115,21 @@ export default function Sidebar() {
             </div>
           )}
           <div className="flex items-center gap-1.5">
+            {/* Tasks badge */}
+            {taskBadge > 0 && (
+              <Link
+                href="/"
+                className="relative p-1.5 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-800"
+                title={`${taskBadge} task${taskBadge !== 1 ? 's' : ''} due`}
+              >
+                <svg className="w-4.5 h-4.5" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {taskBadge > 9 ? '9+' : taskBadge}
+                </span>
+              </Link>
+            )}
             {/* Alerts bell */}
             <button
               onClick={() => setShowAlerts(true)}

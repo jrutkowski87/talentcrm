@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import DealNotesPanel from '../../components/DealNotesPanel';
+import DealTasksPanel from '../../components/DealTasksPanel';
 import ContactPopover from '../../components/ContactPopover';
+import { snakeToTitle, formatCurrency } from '@/lib/format';
 
 // ---------------------------------------------------------------------------
 // Types (matching actual API responses)
@@ -207,27 +209,12 @@ const ALL_STATUSES = [
   'license_drafting', 'music_admin', 'delivery',
 ] as const;
 
-const TALENT_TABS = ['Overview', 'Shortlist', 'Documents', 'Admin', 'Fulfillment', 'Notes', 'Timeline'] as const;
-const MUSIC_TABS = ['Overview', 'Song Pitchlist', 'Music Licenses', 'Documents', 'Admin', 'Notes', 'Timeline'] as const;
-const BOTH_TABS = ['Overview', 'Shortlist', 'Song Pitchlist', 'Music Licenses', 'Documents', 'Admin', 'Fulfillment', 'Notes', 'Timeline'] as const;
+const TALENT_TABS = ['Overview', 'Shortlist', 'Documents', 'Admin', 'Fulfillment', 'Tasks', 'Notes', 'Timeline'] as const;
+const MUSIC_TABS = ['Overview', 'Song Pitchlist', 'Music Licenses', 'Documents', 'Admin', 'Tasks', 'Notes', 'Timeline'] as const;
+const BOTH_TABS = ['Overview', 'Shortlist', 'Song Pitchlist', 'Music Licenses', 'Documents', 'Admin', 'Fulfillment', 'Tasks', 'Notes', 'Timeline'] as const;
 type Tab = string;
 
-function snakeToTitle(str: string): string {
-  return str
-    .split('_')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-}
-
-function formatCurrency(amount: number | null, currency = 'USD'): string {
-  if (amount == null) return '--';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
+// snakeToTitle and formatCurrency imported from @/lib/format
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '--';
@@ -359,6 +346,16 @@ export default function DealDetailPage() {
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [musicLicenses, setMusicLicenses] = useState<any[]>([]);
+
+  // Save as Template modal state
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDesc, setTemplateDesc] = useState('');
+  const [templateSaving, setTemplateSaving] = useState(false);
+
+  // Export dropdown
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // -----------------------------------------------------------------------
   // Fetch deal
@@ -667,6 +664,140 @@ export default function DealDetailPage() {
                 </svg>
                 Duplicate
               </button>
+              {/* Save as Template Button */}
+              <button
+                onClick={() => setShowTemplateModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
+                title="Save as template"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                </svg>
+                Template
+              </button>
+              {/* Export Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  disabled={exporting}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                  title="Export document"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  {exporting ? 'Exporting...' : 'Export'}
+                </button>
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20 py-1">
+                    <button
+                      onClick={async () => {
+                        setShowExportMenu(false);
+                        setExporting(true);
+                        try {
+                          const res = await fetch(`/api/deals/${dealId}/documents/generate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: 'offer_sheet', aiPolish: false }),
+                          });
+                          if (res.ok) {
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${deal.deal_name}_Offer_Sheet.docx`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          } else { alert('Export failed'); }
+                        } catch { alert('Export failed'); }
+                        setExporting(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Offer Sheet (.docx)
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setShowExportMenu(false);
+                        setExporting(true);
+                        try {
+                          const res = await fetch(`/api/deals/${dealId}/documents/generate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: 'long_form', aiPolish: false }),
+                          });
+                          if (res.ok) {
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${deal.deal_name}_Long_Form.docx`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          } else { alert('Export failed'); }
+                        } catch { alert('Export failed'); }
+                        setExporting(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      Long Form (.docx)
+                    </button>
+                    <div className="border-t border-gray-100 my-1" />
+                    <button
+                      onClick={async () => {
+                        setShowExportMenu(false);
+                        setExporting(true);
+                        try {
+                          const res = await fetch(`/api/deals/${dealId}/documents/generate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: 'offer_sheet', aiPolish: true }),
+                          });
+                          if (res.ok) {
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${deal.deal_name}_Offer_Sheet_AI.docx`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          } else { alert('Export failed'); }
+                        } catch { alert('Export failed'); }
+                        setExporting(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      ✨ AI-Enhanced Offer Sheet
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setShowExportMenu(false);
+                        setExporting(true);
+                        try {
+                          const res = await fetch(`/api/deals/${dealId}/documents/generate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ type: 'long_form', aiPolish: true }),
+                          });
+                          if (res.ok) {
+                            const blob = await res.blob();
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = `${deal.deal_name}_Long_Form_AI.docx`;
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          } else { alert('Export failed'); }
+                        } catch { alert('Export failed'); }
+                        setExporting(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      ✨ AI-Enhanced Long Form
+                    </button>
+                  </div>
+                )}
+              </div>
               {/* Deal Type Selector */}
               <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
                 {(['talent', 'music', 'talent_and_music'] as const).map((dt) => (
@@ -786,6 +917,9 @@ export default function DealDetailPage() {
             onRefresh={fetchTimeline}
           />
         )}
+        {activeTab === 'Tasks' && (
+          <DealTasksPanel dealId={dealId} />
+        )}
         {activeTab === 'Notes' && (
           <DealNotesPanel dealId={dealId} />
         )}
@@ -867,6 +1001,75 @@ export default function DealDetailPage() {
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save as Template Modal */}
+      {showTemplateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Save as Template</h3>
+              <button onClick={() => setShowTemplateModal(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              Save the terms from this deal as a reusable template for future deals.
+            </p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!templateName.trim()) return;
+              setTemplateSaving(true);
+              try {
+                const res = await fetch(`/api/templates/from-deal/${dealId}`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name: templateName.trim(), description: templateDesc.trim() || undefined }),
+                });
+                if (res.ok) {
+                  setShowTemplateModal(false);
+                  setTemplateName('');
+                  setTemplateDesc('');
+                  alert('Template saved successfully!');
+                } else {
+                  const json = await res.json();
+                  alert(json.error || 'Failed to save template');
+                }
+              } catch { alert('Failed to save template'); }
+              setTemplateSaving(false);
+            }} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Template Name *</label>
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="e.g., Standard Celebrity Endorsement"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={templateDesc}
+                  onChange={(e) => setTemplateDesc(e.target.value)}
+                  placeholder="Brief description of when to use this template..."
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setShowTemplateModal(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                <button type="submit" disabled={templateSaving || !templateName.trim()} className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50">
+                  {templateSaving ? 'Saving...' : 'Save Template'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -3929,43 +4132,148 @@ function AdminTab({
         </SectionCard>
       </div>
 
-      {/* Fee Payment Milestones */}
-      {deal.fee_payments && deal.fee_payments.length > 0 && (
-        <SectionCard title="Payment Milestones">
-          <div className="space-y-2">
-            {(deal.fee_payments as any[]).map((p: any, i: number) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-3 h-3 rounded-full ${
-                      p.status === 'paid' ? 'bg-green-500' : p.status === 'invoiced' ? 'bg-yellow-500' : 'bg-gray-300'
-                    }`}
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">
-                      {p.percentage ? `${p.percentage}%` : ''} {p.milestone || `Payment ${i + 1}`}
-                    </p>
-                    {p.paid_date && (
-                      <p className="text-xs text-gray-500">Paid: {formatDate(p.paid_date)}</p>
-                    )}
+      {/* Enhanced Payment Tracker */}
+      <SectionCard title="Payment Tracker">
+        {(() => {
+          const payments = (deal.fee_payments as any[]) || [];
+          const totalFee = deal.fee_total || 0;
+
+          // Calculate amounts
+          const paidPayments = payments.filter((p: any) => p.status === 'paid');
+          const invoicedPayments = payments.filter((p: any) => p.status === 'invoiced');
+          const amountPaid = paidPayments.reduce((sum: number, p: any) => {
+            const pct = parseFloat(p.percentage) || 0;
+            return sum + (totalFee * pct / 100);
+          }, 0);
+          const amountInvoiced = invoicedPayments.reduce((sum: number, p: any) => {
+            const pct = parseFloat(p.percentage) || 0;
+            return sum + (totalFee * pct / 100);
+          }, 0) + amountPaid;
+          const outstanding = totalFee - amountPaid;
+
+          const updatePayment = async (idx: number, updates: any) => {
+            const updated = [...payments];
+            updated[idx] = { ...updated[idx], ...updates };
+            try {
+              await fetch(`/api/deals/${dealId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fee_payments: updated }),
+              });
+              onDealRefresh();
+            } catch {}
+          };
+
+          const cycleStatus = (idx: number) => {
+            const current = payments[idx]?.status || 'pending';
+            const next = current === 'pending' ? 'invoiced' : current === 'invoiced' ? 'paid' : 'pending';
+            const updates: any = { status: next };
+            if (next === 'invoiced') updates.invoice_date = new Date().toISOString().split('T')[0];
+            if (next === 'paid') updates.payment_date = new Date().toISOString().split('T')[0];
+            if (next === 'pending') { updates.invoice_date = null; updates.payment_date = null; }
+            updatePayment(idx, updates);
+          };
+
+          return (
+            <>
+              {/* Summary Bar */}
+              {totalFee > 0 && (
+                <div className="mb-4">
+                  <div className="grid grid-cols-4 gap-3 mb-3">
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">Total Fee</p>
+                      <p className="text-sm font-semibold text-gray-900">{formatCurrency(totalFee)}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">Invoiced</p>
+                      <p className="text-sm font-semibold text-amber-600">{formatCurrency(amountInvoiced)}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">Received</p>
+                      <p className="text-sm font-semibold text-green-600">{formatCurrency(amountPaid)}</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">Outstanding</p>
+                      <p className="text-sm font-semibold text-red-600">{formatCurrency(outstanding)}</p>
+                    </div>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                    <div className="h-full flex">
+                      <div className="bg-green-500 h-full transition-all" style={{ width: `${totalFee > 0 ? (amountPaid / totalFee * 100) : 0}%` }} />
+                      <div className="bg-amber-400 h-full transition-all" style={{ width: `${totalFee > 0 ? ((amountInvoiced - amountPaid) / totalFee * 100) : 0}%` }} />
+                    </div>
+                  </div>
+                  <div className="flex gap-4 mt-1.5 text-[10px] text-gray-400">
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500 inline-block" /> Paid</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Invoiced</span>
+                    <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-200 inline-block" /> Pending</span>
                   </div>
                 </div>
-                <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                    p.status === 'paid'
-                      ? 'bg-green-100 text-green-800'
-                      : p.status === 'invoiced'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {p.status ? snakeToTitle(p.status) : 'Pending'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-      )}
+              )}
+
+              {/* Payment Rows */}
+              {payments.length > 0 ? (
+                <div className="space-y-2">
+                  {payments.map((p: any, i: number) => (
+                    <div key={i} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => cycleStatus(i)}
+                            className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors cursor-pointer ${
+                              p.status === 'paid' ? 'bg-green-500 text-white' :
+                              p.status === 'invoiced' ? 'bg-amber-400 text-white' :
+                              'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                            }`}
+                            title="Click to cycle: pending → invoiced → paid"
+                          >
+                            {p.status === 'paid' ? '✓' : p.status === 'invoiced' ? '$' : i + 1}
+                          </button>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {p.percentage ? `${p.percentage}%` : ''} {p.milestone || `Payment ${i + 1}`}
+                              {totalFee > 0 && p.percentage && (
+                                <span className="text-gray-400 font-normal ml-1.5">
+                                  ({formatCurrency(totalFee * parseFloat(p.percentage) / 100)})
+                                </span>
+                              )}
+                            </p>
+                            <div className="flex items-center gap-3 mt-0.5">
+                              {p.invoice_date && (
+                                <span className="text-[10px] text-amber-600">Invoiced: {formatDate(p.invoice_date)}</span>
+                              )}
+                              {p.payment_date && (
+                                <span className="text-[10px] text-green-600">Paid: {formatDate(p.payment_date)}</span>
+                              )}
+                              {p.invoice_number && (
+                                <span className="text-[10px] text-gray-400">INV: {p.invoice_number}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <span
+                          className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                            p.status === 'paid' ? 'bg-green-100 text-green-800' :
+                            p.status === 'invoiced' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {p.status ? snakeToTitle(p.status) : 'Pending'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 text-center py-4">
+                  No payment milestones configured. Set them in the Overview tab under Fee Structure.
+                </p>
+              )}
+            </>
+          );
+        })()}
+      </SectionCard>
 
       {/* Admin Checklist */}
       <SectionCard title="Admin Checklist">

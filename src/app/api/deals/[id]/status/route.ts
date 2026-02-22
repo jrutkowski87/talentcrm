@@ -1,6 +1,36 @@
 import { NextResponse } from 'next/server';
 import { getDealById, updateDealStatus, updateDeal, type DealStatus } from '@/lib/db/deals';
 import { getDb, generateId, getCurrentTimestamp } from '@/lib/db';
+import { createTask } from '@/lib/db/tasks';
+
+// Auto-generated tasks per pipeline stage
+const STAGE_TASKS: Record<string, { title: string; priority?: string; daysFromNow?: number }[]> = {
+  negotiation: [
+    { title: 'Send initial offer to talent rep', priority: 'high', daysFromNow: 2 },
+    { title: 'Follow up on offer response', priority: 'medium', daysFromNow: 7 },
+  ],
+  contract_drafting: [
+    { title: 'Draft contract', priority: 'high', daysFromNow: 5 },
+    { title: 'Send contract for legal review', priority: 'medium', daysFromNow: 10 },
+  ],
+  admin_logistics: [
+    { title: 'Collect W-9/tax forms', priority: 'high', daysFromNow: 3 },
+    { title: 'Set up payment schedule', priority: 'medium', daysFromNow: 5 },
+    { title: 'Coordinate logistics', priority: 'medium', daysFromNow: 7 },
+  ],
+  fulfillment: [
+    { title: 'Confirm deliverables received', priority: 'high', daysFromNow: 14 },
+    { title: 'Review final assets', priority: 'medium', daysFromNow: 21 },
+  ],
+  rights_negotiation: [
+    { title: 'Send license quote request', priority: 'high', daysFromNow: 3 },
+    { title: 'Follow up on rights holder response', priority: 'medium', daysFromNow: 7 },
+  ],
+  license_drafting: [
+    { title: 'Draft music license agreement', priority: 'high', daysFromNow: 5 },
+    { title: 'Send license for counter-signature', priority: 'medium', daysFromNow: 10 },
+  ],
+};
 
 // Pipeline order for gate enforcement
 const PIPELINE_ORDER: DealStatus[] = [
@@ -110,6 +140,27 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     const updated = updateDealStatus(params.id, status);
     if (!updated) {
       return NextResponse.json({ success: false, error: 'Deal not found' }, { status: 404 });
+    }
+
+    // Auto-generate tasks for the new stage
+    try {
+      const stageTasks = STAGE_TASKS[status];
+      if (stageTasks) {
+        for (const taskDef of stageTasks) {
+          const dueDate = taskDef.daysFromNow
+            ? new Date(Date.now() + taskDef.daysFromNow * 86400000).toISOString().split('T')[0]
+            : undefined;
+          createTask({
+            deal_id: params.id,
+            title: taskDef.title,
+            priority: (taskDef.priority as any) || 'medium',
+            due_date: dueDate,
+            auto_generated: true,
+          });
+        }
+      }
+    } catch {
+      // swallow auto-task error — don't block status change
     }
 
     return NextResponse.json({ success: true, data: updated });

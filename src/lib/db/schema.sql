@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS talent (
     id                TEXT PRIMARY KEY,                    -- UUID
     name              TEXT NOT NULL,
     category          TEXT NOT NULL DEFAULT 'other'
-                      CHECK (category IN ('actor', 'musician', 'athlete', 'influencer', 'model', 'creator', 'comedian', 'other')),
+                      CHECK (category IN ('actor', 'musician', 'athlete', 'influencer', 'model', 'creator', 'comedian', 'chef', 'photographer', 'artist', 'other')),
     bio               TEXT,
     notes             TEXT,
     social_handles    TEXT,                                -- JSON: {instagram, tiktok, x, youtube, ...}
@@ -317,7 +317,8 @@ CREATE TABLE IF NOT EXISTS deal_timeline (
                     'deliverable_completed', 'usage_expired',
                     'song_pitched', 'song_selected',
                     'license_status_change', 'license_sent', 'license_signed',
-                    'fee_recalculated'
+                    'fee_recalculated',
+                    'task_created', 'task_completed'
                 )),
     title       TEXT,
     description TEXT,

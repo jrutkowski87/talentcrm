@@ -256,7 +256,7 @@ export const talentCreateSchema: Schema = {
   loan_out_company: { type: 'string', maxLength: 300 },
   loan_out_address: { type: 'string', maxLength: 500 },
   rate_range: { type: 'string', maxLength: 200 },
-  rating:   { type: 'number', min: 0, max: 10 },
+  rating:   { type: 'number', min: 1, max: 5 },
   social_handles:   { type: 'object' },
   social_followers: { type: 'object' },
   categories_worked: { type: 'array' },
@@ -267,7 +267,7 @@ export const clientCreateSchema: Schema = {
   dba_name:   { type: 'string', maxLength: 200 },
   legal_entity: { type: 'string', maxLength: 300 },
   agency:     { type: 'string', maxLength: 200 },
-  confidentiality_level: { type: 'string', oneOf: ['standard', 'high', 'nda'] },
+  confidentiality_level: { type: 'string', oneOf: ['standard', 'proprietary_confidential'] },
   notes:      { type: 'string', maxLength: 5000 },
   key_contacts: { type: 'array' },
 };

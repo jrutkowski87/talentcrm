@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import DuplicateWarning from '../components/DuplicateWarning';
 
 interface Talent {
   id: string;
@@ -413,6 +414,7 @@ export default function TalentDirectoryPage() {
                   className="form-input"
                   placeholder="Enter talent name"
                 />
+                <DuplicateWarning entityType="talent" name={formData.name} />
               </div>
 
               <div>
@@ -431,6 +433,9 @@ export default function TalentDirectoryPage() {
                   <option value="model">Model</option>
                   <option value="creator">Creator</option>
                   <option value="comedian">Comedian</option>
+                  <option value="chef">Chef</option>
+                  <option value="photographer">Photographer</option>
+                  <option value="artist">Artist</option>
                   <option value="other">Other</option>
                 </select>
               </div>

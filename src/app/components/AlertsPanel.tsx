@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { snakeToTitle } from '@/lib/format';
 
 interface Alert {
   type: string;
@@ -14,10 +15,6 @@ interface Alert {
   days_in_stage: number;
   threshold_days: number;
   message: string;
-}
-
-function formatStatus(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
 export default function AlertsPanel({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -101,7 +98,7 @@ export default function AlertsPanel({ isOpen, onClose }: { isOpen: boolean; onCl
                   </div>
                   <div className="mt-2 flex items-center gap-2">
                     <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">
-                      {formatStatus(alert.status)}
+                      {snakeToTitle(alert.status)}
                     </span>
                     <span className="text-[10px] text-gray-400">
                       Threshold: {alert.threshold_days}d

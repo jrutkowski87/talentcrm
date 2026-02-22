@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import DuplicateWarning from '../components/DuplicateWarning';
 
 interface Client {
   id: string;
@@ -278,6 +279,7 @@ export default function ClientsPage() {
                       className="form-input"
                       placeholder="e.g. Acme Corporation"
                     />
+                    <DuplicateWarning entityType="client" name={formData.name} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

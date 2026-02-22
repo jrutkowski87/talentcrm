@@ -3,6 +3,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import AnalyticsSection from './components/AnalyticsSection';
+import DuplicateWarning from './components/DuplicateWarning';
+import { snakeToTitle, formatCurrency, relativeTime } from '@/lib/format';
 
 interface Deal {
   id: string;
@@ -148,47 +151,8 @@ const GROUP_COLORS: Record<string, string> = {
   Complete: 'bg-green-500',
 };
 
-function formatStatus(status: string): string {
-  return status
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
-
-function relativeTime(dateString: string): string {
-  const now = new Date();
-  const date = new Date(dateString);
-  const diffMs = now.getTime() - date.getTime();
-  const diffSeconds = Math.floor(diffMs / 1000);
-  const diffMinutes = Math.floor(diffSeconds / 60);
-  const diffHours = Math.floor(diffMinutes / 60);
-  const diffDays = Math.floor(diffHours / 24);
-  const diffWeeks = Math.floor(diffDays / 7);
-  const diffMonths = Math.floor(diffDays / 30);
-
-  if (diffSeconds < 60) return 'just now';
-  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
-  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
-  if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
-  if (diffWeeks < 5) return `${diffWeeks} week${diffWeeks !== 1 ? 's' : ''} ago`;
-  return `${diffMonths} month${diffMonths !== 1 ? 's' : ''} ago`;
-}
-
-function snakeCaseToTitleCase(str: string): string {
-  return str
-    .split('_')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-}
+// formatStatus, formatCurrency, relativeTime, snakeToTitle imported from @/lib/format
+const formatStatus = snakeToTitle;
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -219,6 +183,42 @@ export default function DashboardPage() {
   });
   const [inlineClientSubmitting, setInlineClientSubmitting] = useState(false);
 
+  const [showArchived, setShowArchived] = useState(false);
+
+  // Templates state
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+
+  // Upcoming Tasks state
+  const [upcomingTasks, setUpcomingTasks] = useState<any[]>([]);
+  const [taskCounts, setTaskCounts] = useState({ overdue: 0, due_today: 0, total_pending: 0 });
+
+  const archiveDeal = async (dealId: string) => {
+    if (!confirm('Archive this deal? It will be hidden from active views but all data will be preserved.')) return;
+    try {
+      const res = await fetch(`/api/deals/${dealId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'archived' }),
+      });
+      if (res.ok) await fetchData();
+      else alert('Failed to archive deal');
+    } catch { alert('Failed to archive deal'); }
+  };
+
+  const restoreDeal = async (dealId: string, dealType: string) => {
+    const newStatus = dealType === 'music' ? 'music_brief' : 'creative_brief';
+    try {
+      const res = await fetch(`/api/deals/${dealId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      if (res.ok) await fetchData();
+      else alert('Failed to restore deal');
+    } catch { alert('Failed to restore deal'); }
+  };
+
   const fetchData = useCallback(async () => {
     try {
       const [dealsRes, talentRes, clientsRes, songsRes, rhRes] = await Promise.all([
@@ -243,11 +243,24 @@ export default function DashboardPage() {
       setSongs(Array.isArray(songsData?.data) ? songsData.data : []);
       setRightsHolders(Array.isArray(rhData?.data) ? rhData.data : []);
 
-      // Fetch activity feed
+      // Fetch activity feed, templates, and upcoming tasks
       try {
-        const activityRes = await fetch('/api/activity?limit=15');
+        const [activityRes, templatesRes, tasksRes] = await Promise.all([
+          fetch('/api/activity?limit=15'),
+          fetch('/api/templates'),
+          fetch('/api/tasks/upcoming?days=7&limit=5'),
+        ]);
         const activityData = activityRes.ok ? await activityRes.json() : { data: [] };
         setActivityFeed(Array.isArray(activityData?.data) ? activityData.data : []);
+
+        const templatesData = templatesRes.ok ? await templatesRes.json() : { data: [] };
+        setTemplates(Array.isArray(templatesData?.data) ? templatesData.data : []);
+
+        const tasksData = tasksRes.ok ? await tasksRes.json() : { data: { tasks: [], counts: {} } };
+        if (tasksData?.data) {
+          setUpcomingTasks(tasksData.data.tasks || []);
+          setTaskCounts(tasksData.data.counts || { overdue: 0, due_today: 0, total_pending: 0 });
+        }
       } catch {}
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -265,15 +278,25 @@ export default function DashboardPage() {
     if (!dealForm.deal_name.trim()) return;
     setDealSubmitting(true);
     try {
+      // Merge template data if a template is selected
+      let payload: any = { ...dealForm };
+      if (selectedTemplateId) {
+        const tmpl = templates.find((t: any) => t.id === selectedTemplateId);
+        if (tmpl) {
+          const tmplData = typeof tmpl.template_data === 'string' ? JSON.parse(tmpl.template_data) : tmpl.template_data;
+          payload = { ...tmplData, ...payload };
+        }
+      }
       const res = await fetch('/api/deals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(dealForm),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to create deal');
       const json = await res.json();
       setShowNewDeal(false);
       setDealForm({ deal_name: '', campaign_name: '', client_id: '', deal_type: 'talent', status: 'creative_brief' });
+      setSelectedTemplateId('');
       // Navigate to the new deal
       if (json.data?.id) {
         router.push(`/deals/${json.data.id}`);
@@ -545,6 +568,55 @@ export default function DashboardPage() {
           </Link>
         </div>
 
+        {/* Analytics Section */}
+        <AnalyticsSection />
+
+        {/* Upcoming Tasks */}
+        {upcomingTasks.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-8">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <h3 className="text-sm font-semibold text-gray-700">Upcoming Tasks</h3>
+                {(taskCounts.overdue > 0 || taskCounts.due_today > 0) && (
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                    {taskCounts.overdue > 0 ? `${taskCounts.overdue} overdue` : `${taskCounts.due_today} due today`}
+                  </span>
+                )}
+              </div>
+              <span className="text-xs text-gray-400">{taskCounts.total_pending} pending total</span>
+            </div>
+            <div className="space-y-2">
+              {upcomingTasks.slice(0, 5).map((task: any) => (
+                <div key={task.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className={`w-2 h-2 rounded-full shrink-0 ${
+                    task.priority === 'urgent' ? 'bg-red-500' :
+                    task.priority === 'high' ? 'bg-orange-500' :
+                    task.priority === 'medium' ? 'bg-blue-500' : 'bg-gray-400'
+                  }`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-700 truncate">{task.title}</p>
+                    {task.deal_name && (
+                      <Link href={`/deals/${task.deal_id}`} className="text-xs text-indigo-500 hover:text-indigo-700">
+                        {task.deal_name}
+                      </Link>
+                    )}
+                  </div>
+                  {task.due_date && (
+                    <span className={`text-xs shrink-0 ${
+                      task.due_date < new Date().toISOString().split('T')[0] ? 'text-red-600 font-medium' : 'text-gray-400'
+                    }`}>
+                      {new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Recent Active Deals Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
@@ -604,6 +676,8 @@ export default function DashboardPage() {
                     <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Last Updated
                     </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -648,6 +722,17 @@ export default function DashboardPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
                         {relativeTime(deal.updated_at)}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); archiveDeal(deal.id); }}
+                          className="p-1.5 text-gray-300 hover:text-gray-600 transition-colors rounded-lg hover:bg-gray-100"
+                          title="Archive deal"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -683,7 +768,7 @@ export default function DashboardPage() {
                           : entry.event_type === 'offer_accepted' ? 'had offer accepted'
                           : entry.event_type === 'approval_granted' ? 'received approval'
                           : entry.event_type === 'payment_made' ? 'had a payment logged'
-                          : snakeCaseToTitleCase(entry.event_type).toLowerCase()
+                          : snakeToTitle(entry.event_type).toLowerCase()
                         }
                       </span>
                     </p>
@@ -697,6 +782,95 @@ export default function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* Archived Deals */}
+        {(() => {
+          const archivedDeals = deals.filter((d) => d.status === 'archived' || d.status === 'dead');
+          if (archivedDeals.length === 0) return null;
+          return (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mt-8">
+              <button
+                onClick={() => setShowArchived(!showArchived)}
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors rounded-xl"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                    <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                    </svg>
+                  </div>
+                  <div className="text-left">
+                    <h2 className="text-lg font-semibold text-gray-900">Archived Deals</h2>
+                    <p className="text-xs text-gray-500">{archivedDeals.length} deal{archivedDeals.length !== 1 ? 's' : ''} archived</p>
+                  </div>
+                </div>
+                <svg className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${showArchived ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showArchived && (
+                <div className="border-t border-gray-200">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-100">
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deal Name</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Client</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Fee</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {archivedDeals.map((deal) => (
+                        <tr key={deal.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Link href={`/deals/${deal.id}`} className="text-sm font-medium text-gray-500 hover:text-indigo-600">
+                              {deal.deal_name}
+                            </Link>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                              deal.deal_type === 'music' ? 'bg-rose-50 text-rose-700' :
+                              deal.deal_type === 'talent_and_music' ? 'bg-violet-50 text-violet-700' :
+                              'bg-gray-50 text-gray-600'
+                            }`}>
+                              {deal.deal_type === 'talent' ? 'Talent' : deal.deal_type === 'music' ? 'Music' : 'Both'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {deal.client_name || '\u2014'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE_COLORS[deal.status] || 'bg-gray-100 text-gray-600'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT_COLORS[deal.status] || 'bg-gray-400'}`} />
+                              {formatStatus(deal.status)}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-500">
+                            {deal.fee_total != null ? formatCurrency(deal.fee_total) : '\u2014'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <button
+                              onClick={() => restoreDeal(deal.id, deal.deal_type)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors"
+                              title="Restore to active pipeline"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                              Restore
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* New Deal Modal */}
@@ -720,6 +894,45 @@ export default function DashboardPage() {
             </div>
 
             <form onSubmit={handleCreateDeal} className="space-y-4">
+              {/* Template Selector */}
+              {templates.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <span className="flex items-center gap-1.5">
+                      <svg className="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                      </svg>
+                      Use Template
+                    </span>
+                  </label>
+                  <select
+                    value={selectedTemplateId}
+                    onChange={(e) => {
+                      setSelectedTemplateId(e.target.value);
+                      const tmpl = templates.find((t: any) => t.id === e.target.value);
+                      if (tmpl) {
+                        try {
+                          const data = typeof tmpl.template_data === 'string' ? JSON.parse(tmpl.template_data) : tmpl.template_data;
+                          setDealForm(prev => ({
+                            ...prev,
+                            deal_type: data.deal_type || prev.deal_type,
+                            status: data.deal_type === 'music' ? 'music_brief' : 'creative_brief',
+                          }));
+                        } catch {}
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white"
+                  >
+                    <option value="">Start from scratch</option>
+                    {templates.map((t: any) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.deal_type === 'talent' ? 'Talent' : t.deal_type === 'music' ? 'Music' : 'Both'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Deal Name <span className="text-red-500">*</span>
@@ -733,6 +946,7 @@ export default function DashboardPage() {
                   placeholder="e.g., Nike Q4 Campaign"
                   autoFocus
                 />
+                <DuplicateWarning entityType="deal" name={dealForm.deal_name} />
               </div>
 
               <div>
@@ -820,6 +1034,7 @@ export default function DashboardPage() {
                         placeholder="Client name (e.g. Nike)"
                         autoFocus
                       />
+                      <DuplicateWarning entityType="client" name={inlineClientForm.name} />
                     </div>
                     <div>
                       <input
@@ -853,7 +1068,7 @@ export default function DashboardPage() {
                 >
                   {getInitialStages(dealForm.deal_type).map((stage) => (
                     <option key={stage} value={stage}>
-                      {snakeCaseToTitleCase(stage)}
+                      {snakeToTitle(stage)}
                     </option>
                   ))}
                 </select>

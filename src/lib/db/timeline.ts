@@ -29,7 +29,7 @@ export function addTimelineEntry(data: Partial<TimelineEntry> & { deal_id: strin
   const db = getDb();
   const id = generateId();
   const now = getCurrentTimestamp();
-  db.prepare('INSERT INTO deal_timeline (id, deal_id, event_type, title, description, metadata, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(id, data.deal_id, data.event_type, data.title ?? '', data.description ?? null, JSON.stringify(data.metadata ?? {}), data.created_by ?? null, now);
+  db.prepare('INSERT INTO deal_timeline (id, deal_id, event_type, title, description, old_value, new_value, metadata, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(id, data.deal_id, data.event_type, data.title ?? '', data.description ?? null, data.old_value ?? null, data.new_value ?? null, JSON.stringify(data.metadata ?? {}), data.created_by ?? null, now);
   return parseRow(db.prepare('SELECT * FROM deal_timeline WHERE id = ?').get(id) as any);
 }
 

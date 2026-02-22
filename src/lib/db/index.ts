@@ -417,6 +417,156 @@ function ensureMigrations(db: Database.Database): void {
       END;
     `);
   }
+
+  // Migration: deal_templates table
+  const hasDealTemplates = db
+    .prepare("SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='deal_templates'")
+    .get() as { count: number };
+
+  if (hasDealTemplates.count === 0) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS deal_templates (
+          id            TEXT PRIMARY KEY,
+          name          TEXT NOT NULL,
+          deal_type     TEXT NOT NULL DEFAULT 'talent',
+          description   TEXT,
+          template_data TEXT NOT NULL DEFAULT '{}',
+          created_by    TEXT,
+          created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_deal_templates_deal_type ON deal_templates(deal_type);
+      CREATE TRIGGER IF NOT EXISTS trg_deal_templates_updated_at
+          AFTER UPDATE ON deal_templates FOR EACH ROW
+      BEGIN
+          UPDATE deal_templates SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+      END;
+    `);
+  }
+
+  // Migration: deal_tasks table
+  const hasDealTasks = db
+    .prepare("SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='deal_tasks'")
+    .get() as { count: number };
+
+  if (hasDealTasks.count === 0) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS deal_tasks (
+          id              TEXT PRIMARY KEY,
+          deal_id         TEXT NOT NULL,
+          title           TEXT NOT NULL,
+          description     TEXT,
+          due_date        TEXT,
+          priority        TEXT NOT NULL DEFAULT 'medium',
+          status          TEXT NOT NULL DEFAULT 'pending',
+          assigned_to     TEXT,
+          auto_generated  INTEGER NOT NULL DEFAULT 0,
+          created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          completed_at    DATETIME,
+          FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_deal_tasks_deal_id ON deal_tasks(deal_id);
+      CREATE INDEX IF NOT EXISTS idx_deal_tasks_due_date ON deal_tasks(due_date);
+      CREATE INDEX IF NOT EXISTS idx_deal_tasks_status ON deal_tasks(status);
+      CREATE TRIGGER IF NOT EXISTS trg_deal_tasks_updated_at
+          AFTER UPDATE ON deal_tasks FOR EACH ROW
+      BEGIN
+          UPDATE deal_tasks SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+      END;
+    `);
+  }
+
+  // Migration: saved_views table
+  const hasSavedViews = db
+    .prepare("SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='saved_views'")
+    .get() as { count: number };
+
+  if (hasSavedViews.count === 0) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS saved_views (
+          id              TEXT PRIMARY KEY,
+          name            TEXT NOT NULL,
+          description     TEXT,
+          filter_data     TEXT NOT NULL,
+          is_default      INTEGER NOT NULL DEFAULT 0,
+          created_by      TEXT,
+          created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS idx_saved_views_name ON saved_views(name);
+      CREATE TRIGGER IF NOT EXISTS trg_saved_views_updated_at
+          AFTER UPDATE ON saved_views FOR EACH ROW
+      BEGIN
+          UPDATE saved_views SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+      END;
+    `);
+  }
+
+  // Migration: Remove restrictive CHECK constraint on talent.category that blocks new categories.
+  const talentSql = (db
+    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='talent'")
+    .get() as { sql: string } | undefined)?.sql ?? '';
+  const hasRestrictiveTalentCheck = talentSql.includes("CHECK") && talentSql.includes("'actor'") &&
+    !talentSql.includes("'chef'");
+
+  if (hasRestrictiveTalentCheck) {
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.transaction(() => {
+      const colInfo = db.prepare("PRAGMA table_info('talent')").all() as { name: string }[];
+      const colNames = colInfo.map((c) => c.name);
+      const colList = colNames.join(', ');
+
+      db.exec(`CREATE TABLE talent_backup AS SELECT ${colList} FROM talent`);
+      db.exec('DROP TABLE talent');
+
+      // Recreate without CHECK on category
+      let newSql = talentSql;
+      newSql = newSql.replace(
+        /\bCHECK\s*\(category\s+IN\s*\([\s\S]*?\)\s*\)/i,
+        ''
+      );
+      newSql = newSql.replace(/,\s*,/g, ',');
+      newSql = newSql.replace(/,\s*\)/g, ')');
+      db.exec(newSql);
+
+      db.exec(`INSERT INTO talent (${colList}) SELECT ${colList} FROM talent_backup`);
+      db.exec('DROP TABLE talent_backup');
+    })();
+    db.exec('PRAGMA foreign_keys = ON');
+  }
+
+  // Migration: Remove restrictive CHECK on deal_timeline.event_type to allow task events
+  const timelineSql = (db
+    .prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='deal_timeline'")
+    .get() as { sql: string } | undefined)?.sql ?? '';
+  const needsTimelineMigration = timelineSql.includes('event_type') &&
+    timelineSql.includes('CHECK') && !timelineSql.includes('task_created');
+
+  if (needsTimelineMigration) {
+    db.exec('PRAGMA foreign_keys = OFF');
+    db.transaction(() => {
+      const colInfo = db.prepare("PRAGMA table_info('deal_timeline')").all() as { name: string }[];
+      const colList = colInfo.map((c) => c.name).join(', ');
+
+      db.exec(`CREATE TABLE deal_timeline_backup AS SELECT ${colList} FROM deal_timeline`);
+      db.exec('DROP TABLE deal_timeline');
+
+      // Recreate without CHECK on event_type (allow any event type string)
+      let newSql = timelineSql;
+      newSql = newSql.replace(
+        /CHECK\s*\(event_type\s+IN\s*\([\s\S]*?\)\s*\)/i,
+        ''
+      );
+      newSql = newSql.replace(/,\s*,/g, ',');
+      newSql = newSql.replace(/,\s*\n\s*\n/g, ',\n');
+      db.exec(newSql);
+
+      db.exec(`INSERT INTO deal_timeline (${colList}) SELECT ${colList} FROM deal_timeline_backup`);
+      db.exec('DROP TABLE deal_timeline_backup');
+    })();
+    db.exec('PRAGMA foreign_keys = ON');
+  }
 }
 
 /**

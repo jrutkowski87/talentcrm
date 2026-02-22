@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { snakeToTitle, formatCurrency } from '@/lib/format';
 
 interface Rep {
   id: string;
@@ -109,17 +110,6 @@ function formatFollowerCount(count: number): string {
   if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
   if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
   return count.toString();
-}
-
-function formatStatus(status: string): string {
-  return status
-    .split('_')
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
-}
-
-function formatCurrency(amount: number, currency: string): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(amount);
 }
 
 export default function TalentDetailPage() {
@@ -600,7 +590,7 @@ export default function TalentDetailPage() {
                         </span>
                       )}
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
-                        {formatStatus(deal.status)}
+                        {snakeToTitle(deal.status)}
                       </span>
                     </div>
                   </div>
