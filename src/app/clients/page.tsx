@@ -101,7 +101,7 @@ export default function ClientsPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center justify-center px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+            className="btn-primary text-sm px-4 py-2.5"
           >
             <svg
               className="w-4 h-4 mr-2"
@@ -141,7 +141,7 @@ export default function ClientsPage() {
               placeholder="Search clients by name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+              className="w-full pl-10 pr-4 py-2.5 form-input"
             />
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function ClientsPage() {
             {filteredClients.map((client) => (
               <div
                 key={client.id}
-                className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow"
+                className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 card-hover"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="min-w-0 flex-1">
@@ -275,7 +275,7 @@ export default function ClientsPage() {
                       value={formData.name}
                       onChange={handleChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="form-input"
                       placeholder="e.g. Acme Corporation"
                     />
                   </div>
@@ -288,7 +288,7 @@ export default function ClientsPage() {
                       name="dba_name"
                       value={formData.dba_name}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="form-input"
                       placeholder="Doing business as..."
                     />
                   </div>
@@ -301,7 +301,7 @@ export default function ClientsPage() {
                       name="legal_entity"
                       value={formData.legal_entity}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="form-input"
                       placeholder="e.g. Acme Corp LLC"
                     />
                   </div>
@@ -315,7 +315,7 @@ export default function ClientsPage() {
                       value={formData.agency}
                       onChange={handleChange}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="form-input"
                       placeholder="e.g. WME, CAA, UTA"
                     />
                   </div>
@@ -327,7 +327,7 @@ export default function ClientsPage() {
                       setShowModal(false);
                       setFormData(emptyForm);
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="btn-secondary text-sm px-4 py-2"
                   >
                     Cancel
                   </button>

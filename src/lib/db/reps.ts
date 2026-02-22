@@ -98,3 +98,11 @@ export function unlinkTalentFromRep(talentId: string, repId: string): void {
   const db = getDb();
   db.prepare('DELETE FROM talent_reps WHERE talent_id = ? AND rep_id = ?').run(talentId, repId);
 }
+
+export function searchReps(query: string): Rep[] {
+  const db = getDb();
+  const pattern = `%${query}%`;
+  return db.prepare(
+    `SELECT * FROM reps WHERE name LIKE ? OR agency LIKE ? OR email LIKE ? ORDER BY name ASC LIMIT 10`
+  ).all(pattern, pattern, pattern) as Rep[];
+}

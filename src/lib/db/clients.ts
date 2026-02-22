@@ -106,6 +106,21 @@ export function deleteClient(id: string): boolean {
   return getDb().prepare('DELETE FROM clients WHERE id = ?').run(id).changes > 0;
 }
 
+export function searchClients(query: string): (Client & { sub_brand_count: number; deal_count: number })[] {
+  const db = getDb();
+  const pattern = `%${query}%`;
+  const rows = db.prepare(
+    `SELECT c.*,
+       (SELECT COUNT(*) FROM sub_brands sb WHERE sb.client_id = c.id) AS sub_brand_count,
+       (SELECT COUNT(*) FROM deals d WHERE d.client_id = c.id) AS deal_count
+     FROM clients c
+     WHERE c.name LIKE ? OR c.dba_name LIKE ? OR c.agency LIKE ?
+     ORDER BY c.name ASC
+     LIMIT 10`
+  ).all(pattern, pattern, pattern) as any[];
+  return rows.map(r => ({ ...r, key_contacts: parseJsonField(r.key_contacts, []) }));
+}
+
 export function createSubBrand(data: Partial<SubBrand> & { client_id: string }): SubBrand {
   const db = getDb();
   const id = generateId();

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import DealNotesPanel from '../../components/DealNotesPanel';
+import ContactPopover from '../../components/ContactPopover';
 
 // ---------------------------------------------------------------------------
 // Types (matching actual API responses)
@@ -205,9 +207,9 @@ const ALL_STATUSES = [
   'license_drafting', 'music_admin', 'delivery',
 ] as const;
 
-const TALENT_TABS = ['Overview', 'Shortlist', 'Documents', 'Admin', 'Fulfillment', 'Timeline'] as const;
-const MUSIC_TABS = ['Overview', 'Song Pitchlist', 'Music Licenses', 'Documents', 'Admin', 'Timeline'] as const;
-const BOTH_TABS = ['Overview', 'Shortlist', 'Song Pitchlist', 'Music Licenses', 'Documents', 'Admin', 'Fulfillment', 'Timeline'] as const;
+const TALENT_TABS = ['Overview', 'Shortlist', 'Documents', 'Admin', 'Fulfillment', 'Notes', 'Timeline'] as const;
+const MUSIC_TABS = ['Overview', 'Song Pitchlist', 'Music Licenses', 'Documents', 'Admin', 'Notes', 'Timeline'] as const;
+const BOTH_TABS = ['Overview', 'Shortlist', 'Song Pitchlist', 'Music Licenses', 'Documents', 'Admin', 'Fulfillment', 'Notes', 'Timeline'] as const;
 type Tab = string;
 
 function snakeToTitle(str: string): string {
@@ -251,21 +253,50 @@ function formatDateTime(dateStr: string | null): string {
 
 function statusColor(status: string): string {
   const map: Record<string, string> = {
-    creative_brief: 'bg-blue-100 text-blue-800',
-    outreach: 'bg-cyan-100 text-cyan-800',
-    shortlist: 'bg-purple-100 text-purple-800',
-    approval_to_offer: 'bg-yellow-100 text-yellow-800',
-    negotiation: 'bg-orange-100 text-orange-800',
-    talent_buyin: 'bg-pink-100 text-pink-800',
-    contract_drafting: 'bg-indigo-100 text-indigo-800',
-    admin_logistics: 'bg-teal-100 text-teal-800',
-    fulfillment: 'bg-lime-100 text-lime-800',
-    complete: 'bg-green-100 text-green-800',
-    archived: 'bg-gray-100 text-gray-600',
-    dead: 'bg-red-100 text-red-800',
+    creative_brief: 'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20',
+    outreach: 'bg-cyan-50 text-cyan-700 ring-1 ring-inset ring-cyan-600/20',
+    shortlist: 'bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20',
+    approval_to_offer: 'bg-yellow-50 text-yellow-700 ring-1 ring-inset ring-yellow-600/20',
+    negotiation: 'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20',
+    talent_buyin: 'bg-pink-50 text-pink-700 ring-1 ring-inset ring-pink-600/20',
+    contract_drafting: 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20',
+    admin_logistics: 'bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-600/20',
+    fulfillment: 'bg-lime-50 text-lime-700 ring-1 ring-inset ring-lime-600/20',
+    complete: 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20',
+    archived: 'bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-500/20',
+    dead: 'bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20',
+    music_brief: 'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20',
+    song_pitching: 'bg-fuchsia-50 text-fuchsia-700 ring-1 ring-inset ring-fuchsia-600/20',
+    song_selection: 'bg-fuchsia-50 text-fuchsia-700 ring-1 ring-inset ring-fuchsia-600/20',
+    rights_negotiation: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20',
+    license_drafting: 'bg-sky-50 text-sky-700 ring-1 ring-inset ring-sky-600/20',
+    music_admin: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20',
+    delivery: 'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20',
   };
-  return map[status] || 'bg-gray-100 text-gray-700';
+  return map[status] || 'bg-gray-50 text-gray-700 ring-1 ring-inset ring-gray-500/20';
 }
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  creative_brief: 'bg-blue-500',
+  outreach: 'bg-cyan-500',
+  shortlist: 'bg-purple-500',
+  approval_to_offer: 'bg-yellow-500',
+  negotiation: 'bg-orange-500',
+  talent_buyin: 'bg-pink-500',
+  contract_drafting: 'bg-indigo-500',
+  admin_logistics: 'bg-teal-500',
+  fulfillment: 'bg-lime-500',
+  complete: 'bg-green-500',
+  archived: 'bg-gray-400',
+  dead: 'bg-red-500',
+  music_brief: 'bg-violet-500',
+  song_pitching: 'bg-fuchsia-500',
+  song_selection: 'bg-fuchsia-500',
+  rights_negotiation: 'bg-amber-500',
+  license_drafting: 'bg-sky-500',
+  music_admin: 'bg-emerald-500',
+  delivery: 'bg-green-500',
+};
 
 function eventTypeColor(eventType: string): string {
   const map: Record<string, string> = {
@@ -599,18 +630,43 @@ export default function DealDetailPage() {
               {deal.campaign_name && (
                 <p className="text-sm text-gray-500">{deal.campaign_name}</p>
               )}
-              {deal.client_name && (
-                <p className="text-sm text-gray-400">
-                  {deal.campaign_name ? '|' : ''} {deal.client_name}
-                </p>
+              {deal.client_name && deal.client_id && (
+                <span className="text-sm text-gray-400">
+                  {deal.campaign_name ? '| ' : ''}
+                  <ContactPopover entityType="client" entityId={deal.client_id} displayName={deal.client_name} linkHref={`/clients/${deal.client_id}`} />
+                </span>
               )}
-              {deal.talent_name && (
-                <p className="text-sm text-gray-400">| Talent: {deal.talent_name}</p>
+              {deal.talent_name && deal.talent_id && (
+                <span className="text-sm text-gray-400">
+                  | Talent: <ContactPopover entityType="talent" entityId={deal.talent_id} displayName={deal.talent_name} linkHref={`/talent/${deal.talent_id}`} />
+                </span>
               )}
             </div>
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-3">
+              {/* Duplicate Button */}
+              <button
+                onClick={async () => {
+                  if (!confirm('Duplicate this deal? A new deal will be created with the same terms but reset status.')) return;
+                  try {
+                    const res = await fetch(`/api/deals/${dealId}/duplicate`, { method: 'POST' });
+                    if (res.ok) {
+                      const json = await res.json();
+                      router.push(`/deals/${json.data.id}`);
+                    } else {
+                      alert('Failed to duplicate deal');
+                    }
+                  } catch { alert('Failed to duplicate deal'); }
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-800 transition-colors"
+                title="Duplicate this deal"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Duplicate
+              </button>
               {/* Deal Type Selector */}
               <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
                 {(['talent', 'music', 'talent_and_music'] as const).map((dt) => (
@@ -629,8 +685,9 @@ export default function DealDetailPage() {
               </div>
 
               <span
-                className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${statusColor(deal.status)}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${statusColor(deal.status)}`}
               >
+                <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT_COLORS[deal.status] || 'bg-gray-400'}`} />
                 {snakeToTitle(deal.status)}
               </span>
               <select
@@ -728,6 +785,9 @@ export default function DealDetailPage() {
             dealId={dealId}
             onRefresh={fetchTimeline}
           />
+        )}
+        {activeTab === 'Notes' && (
+          <DealNotesPanel dealId={dealId} />
         )}
       </div>
 

@@ -89,6 +89,36 @@ export default function DealsPage() {
   });
   const [inlineClientSubmitting, setInlineClientSubmitting] = useState(false);
 
+  // Bulk selection
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedDealIds, setSelectedDealIds] = useState<Set<string>>(new Set());
+
+  const toggleSelection = (id: string) => {
+    setSelectedDealIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkStatus = async (newStatus: string) => {
+    if (!newStatus || selectedDealIds.size === 0) return;
+    try {
+      const res = await fetch('/api/deals/bulk-status', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deal_ids: Array.from(selectedDealIds), status: newStatus }),
+      });
+      if (res.ok) {
+        setSelectedDealIds(new Set());
+        setSelectionMode(false);
+        await fetchDeals();
+      }
+    } catch (err) {
+      alert('Failed to update deals');
+    }
+  };
+
   const fetchDeals = useCallback(async () => {
     try {
       const res = await fetch('/api/deals');
@@ -210,25 +240,30 @@ export default function DealsPage() {
               {dealTypeFilter !== 'all' && ` (${dealTypeFilter})`}
             </p>
           </div>
-          <button
-            onClick={() => setShowNewDealModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-          >
-            <svg
-              className="w-4 h-4 mr-2"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setSelectionMode(!selectionMode); setSelectedDealIds(new Set()); }}
+              className={`inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+                selectionMode
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            New Deal
-          </button>
+              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              {selectionMode ? 'Cancel' : 'Select'}
+            </button>
+            <button
+              onClick={() => setShowNewDealModal(true)}
+              className="btn-primary"
+            >
+              <svg className="w-4 h-4 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              New Deal
+            </button>
+          </div>
         </div>
       </div>
 
@@ -276,10 +311,26 @@ export default function DealsPage() {
                   {stageDeals.length === 0 && (
                     <p className="text-xs text-gray-400 text-center py-4">No deals</p>
                   )}
-                  {stageDeals.map((deal) => (
-                    <Link key={deal.id} href={`/deals/${deal.id}`} className="block">
-                      <div className="bg-white rounded-lg shadow-sm p-3 hover:shadow-md transition-shadow border border-gray-100 cursor-pointer">
+                  {stageDeals.map((deal) => {
+                    const typeStripe = deal.deal_type === 'talent_and_music'
+                      ? 'deal-card-both'
+                      : deal.deal_type === 'music'
+                        ? 'border-l-4 border-l-purple-500'
+                        : 'border-l-4 border-l-blue-500';
+                    const isSelected = selectedDealIds.has(deal.id);
+
+                    const cardContent = (
+                      <div className={`bg-white rounded-lg shadow-sm p-3 transition-all duration-200 border border-gray-100 cursor-pointer hover:shadow-md hover:-translate-y-0.5 ${typeStripe} ${isSelected ? 'ring-2 ring-indigo-500' : ''}`}>
                         <div className="flex items-center justify-between mb-1">
+                          {selectionMode && (
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelection(deal.id)}
+                              className="w-4 h-4 mr-2 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          )}
                           <h4 className="text-sm font-medium text-gray-900 truncate flex-1">
                             {deal.deal_name}
                           </h4>
@@ -303,14 +354,51 @@ export default function DealsPage() {
                           </span>
                         </div>
                       </div>
-                    </Link>
-                  ))}
+                    );
+
+                    if (selectionMode) {
+                      return (
+                        <div key={deal.id} onClick={() => toggleSelection(deal.id)}>
+                          {cardContent}
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <Link key={deal.id} href={`/deals/${deal.id}`} className="block">
+                        {cardContent}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             );
           })}
         </div>
       </div>
+
+      {/* Bulk Action Bar */}
+      {selectedDealIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white rounded-xl shadow-2xl px-6 py-3 flex items-center gap-4 z-40">
+          <span className="text-sm font-medium">{selectedDealIds.size} deal{selectedDealIds.size > 1 ? 's' : ''} selected</span>
+          <select
+            onChange={(e) => handleBulkStatus(e.target.value)}
+            className="bg-gray-800 text-white text-sm rounded-lg px-3 py-1.5 border border-gray-700 focus:ring-1 focus:ring-indigo-500 outline-none"
+            defaultValue=""
+          >
+            <option value="" disabled>Move to...</option>
+            {(dealTypeFilter === 'music' ? MUSIC_PIPELINE_STAGES : TALENT_PIPELINE_STAGES).map(stage => (
+              <option key={stage} value={stage}>{snakeCaseToTitleCase(stage)}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => { setSelectedDealIds(new Set()); setSelectionMode(false); }}
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* New Deal Modal */}
       {showNewDealModal && (

@@ -391,6 +391,32 @@ function ensureMigrations(db: Database.Database): void {
 
   // FK fix migration completed — child tables rebuilt to fix stale FK references
   // after deals table was recreated to remove CHECK constraint. (2024)
+
+  // Migration: deal_notes table
+  const hasDealNotes = db
+    .prepare("SELECT count(*) as count FROM sqlite_master WHERE type='table' AND name='deal_notes'")
+    .get() as { count: number };
+
+  if (hasDealNotes.count === 0) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS deal_notes (
+          id          TEXT PRIMARY KEY,
+          deal_id     TEXT NOT NULL,
+          content     TEXT NOT NULL,
+          created_by  TEXT,
+          created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (deal_id) REFERENCES deals(id) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS idx_deal_notes_deal_id ON deal_notes(deal_id);
+      CREATE INDEX IF NOT EXISTS idx_deal_notes_created_at ON deal_notes(created_at);
+      CREATE TRIGGER IF NOT EXISTS trg_deal_notes_updated_at
+          AFTER UPDATE ON deal_notes FOR EACH ROW
+      BEGIN
+          UPDATE deal_notes SET updated_at = CURRENT_TIMESTAMP WHERE id = OLD.id;
+      END;
+    `);
+  }
 }
 
 /**

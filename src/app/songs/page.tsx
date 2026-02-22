@@ -136,7 +136,7 @@ export default function SongsPage() {
           </div>
           <button
             onClick={() => setModalOpen(true)}
-            className="inline-flex items-center px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+            className="btn-primary text-sm px-4 py-2.5"
           >
             <span className="mr-1.5 text-lg leading-none">+</span> Add Song
           </button>
@@ -150,7 +150,7 @@ export default function SongsPage() {
               placeholder="Search by title, artist, or album..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
+              className="w-full pl-10 pr-4 py-2.5 form-input"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -174,7 +174,7 @@ export default function SongsPage() {
               <Link
                 key={song.id}
                 href={`/songs/${song.id}`}
-                className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all p-5 group"
+                className="bg-white rounded-xl border border-gray-200 shadow-sm card-hover p-5 group"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center">
@@ -217,30 +217,30 @@ export default function SongsPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                <input type="text" required value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                <input type="text" required value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="form-input" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Artist</label>
-                <input type="text" required value={formData.artist_name} onChange={(e) => setFormData({ ...formData, artist_name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                <input type="text" required value={formData.artist_name} onChange={(e) => setFormData({ ...formData, artist_name: e.target.value })} className="form-input" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Album</label>
-                  <input type="text" value={formData.album} onChange={(e) => setFormData({ ...formData, album: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                  <input type="text" value={formData.album} onChange={(e) => setFormData({ ...formData, album: e.target.value })} className="form-input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                  <input type="number" value={formData.release_year} onChange={(e) => setFormData({ ...formData, release_year: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                  <input type="number" value={formData.release_year} onChange={(e) => setFormData({ ...formData, release_year: e.target.value })} className="form-input" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Genre</label>
-                  <input type="text" value={formData.genre} onChange={(e) => setFormData({ ...formData, genre: e.target.value })} placeholder="e.g. Pop, Rock, Hip-Hop" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                  <input type="text" value={formData.genre} onChange={(e) => setFormData({ ...formData, genre: e.target.value })} placeholder="e.g. Pop, Rock, Hip-Hop" className="form-input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Duration (sec)</label>
-                  <input type="number" value={formData.duration_seconds} onChange={(e) => setFormData({ ...formData, duration_seconds: e.target.value })} placeholder="e.g. 210" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                  <input type="number" value={formData.duration_seconds} onChange={(e) => setFormData({ ...formData, duration_seconds: e.target.value })} placeholder="e.g. 210" className="form-input" />
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">

@@ -98,26 +98,47 @@ const STATUS_GROUPS: Record<string, string[]> = {
 };
 
 const STATUS_BADGE_COLORS: Record<string, string> = {
-  creative_brief: 'bg-blue-100 text-blue-800',
-  outreach: 'bg-blue-100 text-blue-800',
-  shortlist: 'bg-blue-100 text-blue-800',
-  approval_to_offer: 'bg-blue-100 text-blue-800',
-  negotiation: 'bg-yellow-100 text-yellow-800',
-  talent_buyin: 'bg-yellow-100 text-yellow-800',
-  contract_drafting: 'bg-indigo-100 text-indigo-800',
-  admin_logistics: 'bg-indigo-100 text-indigo-800',
-  fulfillment: 'bg-purple-100 text-purple-800',
-  complete: 'bg-green-100 text-green-800',
-  archived: 'bg-gray-100 text-gray-600',
-  dead: 'bg-gray-100 text-gray-600',
+  creative_brief:    'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20',
+  outreach:          'bg-cyan-50 text-cyan-700 ring-1 ring-inset ring-cyan-600/20',
+  shortlist:         'bg-purple-50 text-purple-700 ring-1 ring-inset ring-purple-600/20',
+  approval_to_offer: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20',
+  negotiation:       'bg-orange-50 text-orange-700 ring-1 ring-inset ring-orange-600/20',
+  talent_buyin:      'bg-pink-50 text-pink-700 ring-1 ring-inset ring-pink-600/20',
+  contract_drafting: 'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20',
+  admin_logistics:   'bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-600/20',
+  fulfillment:       'bg-lime-50 text-lime-700 ring-1 ring-inset ring-lime-600/20',
+  complete:          'bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20',
+  archived:          'bg-gray-50 text-gray-500 ring-1 ring-inset ring-gray-500/20',
+  dead:              'bg-red-50 text-red-600 ring-1 ring-inset ring-red-500/20',
   // Music pipeline
-  music_brief: 'bg-blue-100 text-blue-800',
-  song_pitching: 'bg-blue-100 text-blue-800',
-  song_selection: 'bg-blue-100 text-blue-800',
-  rights_negotiation: 'bg-yellow-100 text-yellow-800',
-  license_drafting: 'bg-indigo-100 text-indigo-800',
-  music_admin: 'bg-indigo-100 text-indigo-800',
-  delivery: 'bg-purple-100 text-purple-800',
+  music_brief:       'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20',
+  song_pitching:     'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-600/20',
+  song_selection:    'bg-fuchsia-50 text-fuchsia-700 ring-1 ring-inset ring-fuchsia-600/20',
+  rights_negotiation:'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20',
+  license_drafting:  'bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20',
+  music_admin:       'bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-600/20',
+  delivery:          'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20',
+};
+
+const STATUS_DOT_COLORS: Record<string, string> = {
+  creative_brief: 'bg-blue-500', outreach: 'bg-cyan-500', shortlist: 'bg-purple-500',
+  approval_to_offer: 'bg-amber-500', negotiation: 'bg-orange-500', talent_buyin: 'bg-pink-500',
+  contract_drafting: 'bg-indigo-500', admin_logistics: 'bg-teal-500', fulfillment: 'bg-lime-500',
+  complete: 'bg-green-500', archived: 'bg-gray-400', dead: 'bg-red-500',
+  music_brief: 'bg-blue-500', song_pitching: 'bg-violet-500', song_selection: 'bg-fuchsia-500',
+  rights_negotiation: 'bg-amber-500', license_drafting: 'bg-indigo-500', music_admin: 'bg-teal-500',
+  delivery: 'bg-emerald-500',
+};
+
+const ACTIVITY_DOT_COLORS: Record<string, string> = {
+  status_change: 'bg-blue-500', stage_change: 'bg-blue-500', field_change: 'bg-gray-400',
+  talent_added: 'bg-teal-500', talent_selected: 'bg-teal-500',
+  document_generated: 'bg-indigo-500', document_uploaded: 'bg-indigo-500', document_signed: 'bg-green-500',
+  song_pitched: 'bg-violet-500', song_selected: 'bg-violet-500',
+  license_status_change: 'bg-purple-500', license_sent: 'bg-purple-500', license_signed: 'bg-green-500',
+  payment_made: 'bg-emerald-500', note_added: 'bg-amber-500',
+  approval_granted: 'bg-green-500', offer_accepted: 'bg-green-500',
+  fee_recalculated: 'bg-orange-500',
 };
 
 const GROUP_COLORS: Record<string, string> = {
@@ -176,6 +197,7 @@ export default function DashboardPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [rightsHolders, setRightsHolders] = useState<RightsHolder[]>([]);
+  const [activityFeed, setActivityFeed] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // New Deal modal state
@@ -220,6 +242,13 @@ export default function DashboardPage() {
       setClients(Array.isArray(clientsData?.data) ? clientsData.data : []);
       setSongs(Array.isArray(songsData?.data) ? songsData.data : []);
       setRightsHolders(Array.isArray(rhData?.data) ? rhData.data : []);
+
+      // Fetch activity feed
+      try {
+        const activityRes = await fetch('/api/activity?limit=15');
+        const activityData = activityRes.ok ? await activityRes.json() : { data: [] };
+        setActivityFeed(Array.isArray(activityData?.data) ? activityData.data : []);
+      } catch {}
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
@@ -422,7 +451,7 @@ export default function DashboardPage() {
           {pipelineCounts.map(({ group, count }) => (
             <div
               key={group}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-5"
+              className="card-hover p-5"
             >
               <div className="flex items-center justify-between">
                 <div>
@@ -446,7 +475,7 @@ export default function DashboardPage() {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-          <Link href="/deals" className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+          <Link href="/deals" className="card-hover p-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-indigo-500 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -462,7 +491,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </Link>
-          <Link href="/talent" className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+          <Link href="/talent" className="card-hover p-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-teal-500 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -475,7 +504,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </Link>
-          <Link href="/clients" className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+          <Link href="/clients" className="card-hover p-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-orange-500 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -488,7 +517,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </Link>
-          <Link href="/songs" className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+          <Link href="/songs" className="card-hover p-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-rose-500 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -501,7 +530,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </Link>
-          <Link href="/rights-holders" className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow">
+          <Link href="/rights-holders" className="card-hover p-5">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center">
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -605,10 +634,11 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             STATUS_BADGE_COLORS[deal.status] || 'bg-gray-100 text-gray-600'
                           }`}
                         >
+                          <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT_COLORS[deal.status] || 'bg-gray-400'}`} />
                           {formatStatus(deal.status)}
                         </span>
                       </td>
@@ -625,6 +655,48 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* Activity Feed */}
+        {activityFeed.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mt-8">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+              <p className="text-xs text-gray-500 mt-0.5">Latest actions across all deals</p>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {activityFeed.map((entry: any) => (
+                <div key={entry.id} className="px-6 py-3 flex items-start gap-3 hover:bg-gray-50/50 transition-colors">
+                  <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${ACTIVITY_DOT_COLORS[entry.event_type] || 'bg-gray-400'}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-700">
+                      <Link href={`/deals/${entry.deal_id}`} className="font-medium text-indigo-600 hover:text-indigo-800">
+                        {entry.deal_name || 'Deal'}
+                      </Link>
+                      {' '}
+                      <span className="text-gray-500">
+                        {entry.event_type === 'status_change' || entry.event_type === 'stage_change'
+                          ? `moved to ${formatStatus(entry.new_value || '')}`
+                          : entry.event_type === 'note_added' ? 'received a note'
+                          : entry.event_type === 'talent_added' ? 'had talent added'
+                          : entry.event_type === 'talent_selected' ? 'selected talent'
+                          : entry.event_type === 'document_generated' ? 'generated a document'
+                          : entry.event_type === 'offer_accepted' ? 'had offer accepted'
+                          : entry.event_type === 'approval_granted' ? 'received approval'
+                          : entry.event_type === 'payment_made' ? 'had a payment logged'
+                          : snakeCaseToTitleCase(entry.event_type).toLowerCase()
+                        }
+                      </span>
+                    </p>
+                    {entry.description && (
+                      <p className="text-xs text-gray-400 mt-0.5 truncate">{entry.description}</p>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-gray-400 shrink-0 mt-0.5">{relativeTime(entry.created_at)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* New Deal Modal */}

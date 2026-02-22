@@ -16,3 +16,64 @@ svg[viewBox="0 0 24 24"] {
   max-width: 2.5rem;
   max-height: 2.5rem;
 }
+
+/* ─── Design System ─── */
+
+@layer components {
+  /* Card with polished hover effect */
+  .card-hover {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200
+           transition-all duration-200 ease-out
+           hover:shadow-md hover:-translate-y-0.5 hover:border-gray-300;
+  }
+
+  /* Form inputs */
+  .form-input {
+    @apply w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900
+           focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none
+           bg-white placeholder-gray-400 transition-colors;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1.5;
+  }
+
+  .form-select {
+    @apply w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900
+           focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none
+           bg-white transition-colors;
+  }
+
+  .form-textarea {
+    @apply w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900
+           focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none
+           bg-white placeholder-gray-400 resize-none transition-colors;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg
+           hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-50
+           disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg
+           hover:bg-gray-200 transition-colors;
+  }
+
+  /* Sidebar */
+  .sidebar-link:hover .sidebar-icon {
+    @apply scale-110;
+  }
+
+  .sidebar-icon {
+    @apply transition-transform duration-200 ease-out;
+  }
+}
+
+/* Deal type gradient border for "both" deals */
+.deal-card-both {
+  border-left: 4px solid transparent;
+  border-image: linear-gradient(to bottom, #3b82f6, #8b5cf6) 1;
+}

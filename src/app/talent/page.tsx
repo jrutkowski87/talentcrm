@@ -238,7 +238,7 @@ export default function TalentDirectoryPage() {
             </div>
             <button
               onClick={() => setShowModal(true)}
-              className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+              className="btn-primary text-sm px-4 py-2"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -268,7 +268,7 @@ export default function TalentDirectoryPage() {
                 placeholder="Search talent by name..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 form-input"
               />
             </div>
           </div>
@@ -325,7 +325,7 @@ export default function TalentDirectoryPage() {
               return (
                 <div
                   key={t.id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
+                  className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 card-hover"
                 >
                   <div className="flex items-start justify-between mb-3">
                     <Link
@@ -410,7 +410,7 @@ export default function TalentDirectoryPage() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="form-input"
                   placeholder="Enter talent name"
                 />
               </div>
@@ -422,7 +422,7 @@ export default function TalentDirectoryPage() {
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="form-input"
                 >
                   <option value="actor">Actor</option>
                   <option value="musician">Musician</option>
@@ -441,7 +441,7 @@ export default function TalentDirectoryPage() {
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="form-input"
                   placeholder="e.g. Los Angeles, CA"
                 />
               </div>
@@ -452,7 +452,7 @@ export default function TalentDirectoryPage() {
                   type="text"
                   value={formData.rate_range}
                   onChange={(e) => setFormData({ ...formData, rate_range: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="form-input"
                   placeholder="e.g. $25K-$35K"
                 />
               </div>
@@ -463,7 +463,7 @@ export default function TalentDirectoryPage() {
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
+                  className="form-textarea"
                   placeholder="Brief bio or notes about the talent"
                 />
               </div>
@@ -488,7 +488,7 @@ export default function TalentDirectoryPage() {
                           setSelectedRepId(e.target.value);
                         }
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                      className="form-select"
                     >
                       <option value="">No rep selected</option>
                       {repOptions.map((r) => (
@@ -502,7 +502,7 @@ export default function TalentDirectoryPage() {
                       <select
                         value={repRelationship}
                         onChange={(e) => setRepRelationship(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                        className="form-select"
                       >
                         <option value="agent">Agent</option>
                         <option value="manager">Manager</option>
@@ -528,7 +528,7 @@ export default function TalentDirectoryPage() {
                       type="text"
                       value={inlineRepForm.name}
                       onChange={(e) => setInlineRepForm((p) => ({ ...p, name: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="form-input"
                       placeholder="Rep name"
                       autoFocus
                     />
@@ -536,27 +536,27 @@ export default function TalentDirectoryPage() {
                       type="email"
                       value={inlineRepForm.email}
                       onChange={(e) => setInlineRepForm((p) => ({ ...p, email: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="form-input"
                       placeholder="Email"
                     />
                     <input
                       type="text"
                       value={inlineRepForm.phone}
                       onChange={(e) => setInlineRepForm((p) => ({ ...p, phone: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="form-input"
                       placeholder="Phone"
                     />
                     <input
                       type="text"
                       value={inlineRepForm.agency}
                       onChange={(e) => setInlineRepForm((p) => ({ ...p, agency: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="form-input"
                       placeholder="Agency (e.g. WME, CAA, UTA)"
                     />
                     <select
                       value={inlineRepForm.role}
                       onChange={(e) => setInlineRepForm((p) => ({ ...p, role: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                      className="form-input"
                     >
                       <option value="agent">Agent</option>
                       <option value="manager">Manager</option>
@@ -580,7 +580,7 @@ export default function TalentDirectoryPage() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="btn-secondary text-sm px-4 py-2"
                 >
                   Cancel
                 </button>

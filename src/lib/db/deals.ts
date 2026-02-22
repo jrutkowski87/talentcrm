@@ -503,3 +503,114 @@ export function deleteDeal(id: string): boolean {
   const result = db.prepare('DELETE FROM deals WHERE id = ?').run(id);
   return result.changes > 0;
 }
+
+/**
+ * Search deals by name, campaign, client, or talent.
+ */
+export function searchDeals(query: string): (Deal & { client_name?: string; talent_name?: string })[] {
+  const db = getDb();
+  const pattern = `%${query}%`;
+  const rows = db.prepare(`
+    SELECT d.*, c.name AS client_name, t.name AS talent_name
+    FROM deals d
+    LEFT JOIN clients c ON d.client_id = c.id
+    LEFT JOIN talent  t ON d.talent_id  = t.id
+    WHERE d.deal_name LIKE ? OR d.campaign_name LIKE ?
+       OR c.name LIKE ? OR t.name LIKE ?
+    ORDER BY d.updated_at DESC
+    LIMIT 10
+  `).all(pattern, pattern, pattern, pattern) as any[];
+  return rows.map(parseJsonFields);
+}
+
+/**
+ * Duplicate a deal, resetting status and progress fields.
+ */
+export function duplicateDeal(sourceId: string): Deal {
+  const source = getDealById(sourceId);
+  if (!source) throw new Error('Source deal not found');
+
+  const cloneData: Partial<Deal> = {
+    client_id: source.client_id,
+    sub_brand_id: source.sub_brand_id,
+    deal_name: `${source.deal_name} (Copy)`,
+    campaign_name: source.campaign_name,
+    status: source.deal_type === 'music' ? 'music_brief' : 'creative_brief',
+    talent_id: source.talent_id,
+    brief_raw_text: source.brief_raw_text,
+    brief_parsed_data: source.brief_parsed_data,
+    effective_date: null,
+    service_days: source.service_days,
+    social_posts: source.social_posts,
+    media_opportunities: source.media_opportunities,
+    ambassador_duties: source.ambassador_duties,
+    approval_rights: source.approval_rights,
+    image_rights: source.image_rights,
+    permitted_usage: source.permitted_usage,
+    post_term_rules: source.post_term_rules,
+    term_duration: source.term_duration,
+    term_duration_weeks: source.term_duration_weeks,
+    term_start_trigger: source.term_start_trigger,
+    term_start_date: null,
+    term_end_date: null,
+    fee_total: source.fee_total,
+    fee_currency: source.fee_currency,
+    fee_structure: source.fee_structure,
+    fee_payments: source.fee_payments,
+    fee_net_terms: source.fee_net_terms,
+    fee_mfn: source.fee_mfn,
+    fee_mfn_details: source.fee_mfn_details,
+    fee_revenue_share: source.fee_revenue_share,
+    fee_ancillary: source.fee_ancillary,
+    exclusivity_category: source.exclusivity_category,
+    exclusivity_brands: source.exclusivity_brands,
+    exclusivity_duration: source.exclusivity_duration,
+    travel: source.travel,
+    hmu: source.hmu,
+    talent_criteria: source.talent_criteria,
+    governing_law: source.governing_law,
+    non_union: source.non_union,
+    confidential: source.confidential,
+    lender_entity: source.lender_entity,
+    lender_address: source.lender_address,
+    company_signatory: source.company_signatory,
+    talent_signatory: source.talent_signatory,
+    notice_emails: source.notice_emails,
+    termination_cure_days: source.termination_cure_days,
+    morals_clause: source.morals_clause,
+    morals_clause_details: source.morals_clause_details,
+    pro_rata_formula: source.pro_rata_formula,
+    materials_stills_count: source.materials_stills_count,
+    materials_videos: source.materials_videos,
+    materials_edits_versions: source.materials_edits_versions,
+    materials_alternate_assets: source.materials_alternate_assets,
+    deal_type: source.deal_type,
+    music_status: source.deal_type === 'talent_and_music' ? 'music_brief' : null,
+    song_id: source.song_id,
+    license_type: source.license_type,
+    usage_type: source.usage_type,
+    territory: source.territory,
+    media: source.media,
+    fee_per_side: source.fee_per_side,
+    master_fee_override: source.master_fee_override,
+    // Reset all progress fields
+    approval_to_engage_at: null,
+    approval_to_engage_by: null,
+    approval_notes: null,
+    offer_snapshot: null,
+    usage_start_date: null,
+    usage_end_date: null,
+    deliverables_status: [],
+    admin_checklist: [],
+    w9_received: false,
+    w9_received_date: null,
+    invoice_received: false,
+    invoice_received_date: null,
+    offer_sheet_version: 1,
+    longform_version: 1,
+    offer_accepted_at: null,
+    contract_executed_at: null,
+  };
+
+  return createDeal(cloneData);
+}
