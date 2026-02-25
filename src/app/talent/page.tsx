@@ -59,7 +59,8 @@ function StarRating({ rating }: { rating: number | null }) {
 
 function getTopFollowerCount(followers: Record<string, number> | null): string | null {
   if (!followers || typeof followers !== 'object') return null;
-  const parsed = typeof followers === 'string' ? JSON.parse(followers) : followers;
+  let parsed = followers;
+  if (typeof followers === 'string') { try { parsed = JSON.parse(followers); } catch { return null; } }
   const entries = Object.entries(parsed) as [string, number][];
   if (entries.length === 0) return null;
   entries.sort((a, b) => b[1] - a[1]);

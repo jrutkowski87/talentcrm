@@ -23,7 +23,6 @@ const ENTITY_LINKS: Record<string, string> = {
 export default function DuplicateWarning({ entityType, name, onDismiss }: DuplicateWarningProps) {
   const [duplicates, setDuplicates] = useState<Duplicate[]>([]);
   const [dismissed, setDismissed] = useState(false);
-  const [checking, setChecking] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastChecked = useRef('');
@@ -48,7 +47,6 @@ export default function DuplicateWarning({ entityType, name, onDismiss }: Duplic
       lastChecked.current = trimmed.toLowerCase();
       const controller = new AbortController();
       abortRef.current = controller;
-      setChecking(true);
       try {
         const res = await fetch(
           `/api/duplicates?name=${encodeURIComponent(trimmed)}&type=${entityType}`,
@@ -61,7 +59,6 @@ export default function DuplicateWarning({ entityType, name, onDismiss }: Duplic
       } catch {
         if (!controller.signal.aborted) setDuplicates([]);
       }
-      if (!controller.signal.aborted) setChecking(false);
     }, 300);
 
     return () => {

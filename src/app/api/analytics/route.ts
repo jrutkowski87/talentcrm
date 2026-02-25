@@ -60,7 +60,6 @@ export async function GET() {
     `).all() as { client_name: string; deal_count: number; total_revenue: number }[];
 
     // 5. Conversion funnel — count of deals that reached each pipeline stage
-    const allStages = Array.from(new Set([...TALENT_PIPELINE_STAGES, ...MUSIC_PIPELINE_STAGES]));
     const funnelData: { stage: string; label: string; count: number }[] = [];
 
     for (const stage of TALENT_PIPELINE_STAGES) {

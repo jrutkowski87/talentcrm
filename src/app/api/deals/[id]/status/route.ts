@@ -60,7 +60,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ success: false, error: 'Deal not found' }, { status: 404 });
     }
 
-    const currentIdx = stageIndex(deal.status as DealStatus);
     const targetIdx = stageIndex(status as DealStatus);
 
     // Allow moving to 'archived' or 'dead' from anywhere

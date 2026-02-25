@@ -225,7 +225,7 @@ function parseWithRules(rawText: string): ParsedBrief {
     confidential: extractConfidential(text, lower),
     effective_date: extractEffectiveDate(text),
     post_term_rules: extractPostTermRules(text, lower),
-    non_union: extractNonUnion(text, lower),
+    non_union: extractNonUnion(text),
     confidence: 0,
   };
 
@@ -974,7 +974,7 @@ function extractPostTermRules(text: string, lower: string): string | null {
 
 // --- Non-union -------------------------------------------------------------
 
-function extractNonUnion(text: string, lower: string): boolean | null {
+function extractNonUnion(text: string): boolean | null {
   if (/\bnon[- ]?union\b/i.test(text)) return true;
   if (/\bunion\b|\bSAG[- ]?AFTRA\b|\bAFTRA\b|\bSAG\b/i.test(text)) return false;
   return null;

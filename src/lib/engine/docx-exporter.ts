@@ -1,7 +1,10 @@
 import {
-  Document, Packer, Paragraph, TextRun,
-  HeadingLevel, AlignmentType, BorderStyle,
-  Table, TableRow, TableCell, WidthType,
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType
 } from 'docx';
 import { generateOfferSheet, offerSheetToText, type OfferSheetData } from './offer-sheet-generator';
 import { generateLongForm, longFormToText, type LongFormData } from './longform-generator';

@@ -23,13 +23,6 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: 'bg-gray-100 text-gray-600',
 };
 
-const PRIORITY_DOT: Record<string, string> = {
-  urgent: 'bg-red-500',
-  high: 'bg-orange-500',
-  medium: 'bg-blue-500',
-  low: 'bg-gray-400',
-};
-
 export default function DealTasksPanel({ dealId }: { dealId: string }) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);

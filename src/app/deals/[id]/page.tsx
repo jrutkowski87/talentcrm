@@ -203,11 +203,6 @@ const MUSIC_STATUSES = [
   'license_drafting', 'music_admin', 'delivery', 'complete', 'archived', 'dead',
 ] as const;
 
-const ALL_STATUSES = [
-  ...TALENT_STATUSES,
-  'music_brief', 'song_pitching', 'song_selection', 'rights_negotiation',
-  'license_drafting', 'music_admin', 'delivery',
-] as const;
 
 const TALENT_TABS = ['Overview', 'Shortlist', 'Documents', 'Admin', 'Fulfillment', 'Tasks', 'Notes', 'Timeline'] as const;
 const MUSIC_TABS = ['Overview', 'Song Pitchlist', 'Music Licenses', 'Documents', 'Admin', 'Tasks', 'Notes', 'Timeline'] as const;
@@ -907,7 +902,7 @@ export default function DealDetailPage() {
           <SongPitchlistTab dealId={dealId} deal={deal} onDealRefresh={fetchDeal} />
         )}
         {activeTab === 'Music Licenses' && (
-          <MusicLicensesTab dealId={dealId} deal={deal} onDealRefresh={fetchDeal} />
+          <MusicLicensesTab dealId={dealId} deal={deal} />
         )}
         {activeTab === 'Timeline' && (
           <TimelineTab
@@ -4380,7 +4375,6 @@ function FulfillmentTab({
   dealId: string;
   onDealRefresh: () => void;
 }) {
-  const [saving, setSaving] = useState(false);
   const [deliverables, setDeliverables] = useState<
     { type: string; description: string; status: string; due_date: string | null; completed_date: string | null }[]
   >(deal.deliverables_status?.length ? deal.deliverables_status : []);
@@ -4394,31 +4388,21 @@ function FulfillmentTab({
   }, [deal.deliverables_status]);
 
   const saveDeliverables = async (updated: typeof deliverables) => {
-    setSaving(true);
-    try {
-      await fetch(`/api/deals/${dealId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ deliverables_status: updated }),
-      });
-      onDealRefresh();
-    } finally {
-      setSaving(false);
-    }
+    await fetch(`/api/deals/${dealId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deliverables_status: updated }),
+    });
+    onDealRefresh();
   };
 
   const saveUsageDates = async (field: string, value: string) => {
-    setSaving(true);
-    try {
-      await fetch(`/api/deals/${dealId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ [field]: value || null }),
-      });
-      onDealRefresh();
-    } finally {
-      setSaving(false);
-    }
+    await fetch(`/api/deals/${dealId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [field]: value || null }),
+    });
+    onDealRefresh();
   };
 
   const toggleDeliverable = (idx: number) => {
@@ -4775,7 +4759,7 @@ function SongPitchlistTab({ dealId, deal, onDealRefresh }: { dealId: string; dea
     } catch {} finally { setAdding(false); }
   };
 
-  const handleStatusChange = async (entryId: string, newStatus: string, songId: string) => {
+  const handleStatusChange = async (entryId: string, newStatus: string) => {
     try {
       await fetch(`/api/deals/${dealId}/pitchlist/${entryId}`, {
         method: 'PUT',
@@ -4874,7 +4858,7 @@ function SongPitchlistTab({ dealId, deal, onDealRefresh }: { dealId: string; dea
                   <td className="px-5 py-3">
                     <select
                       value={entry.pitch_status}
-                      onChange={(e) => handleStatusChange(entry.id, e.target.value, entry.song_id)}
+                      onChange={(e) => handleStatusChange(entry.id, e.target.value)}
                       className={`text-xs px-2 py-1 rounded-lg font-medium border-0 ${PITCH_COLORS[entry.pitch_status] || 'bg-gray-100'}`}
                     >
                       {PITCH_STATUSES.map((s) => <option key={s} value={s}>{snakeToTitle(s)}</option>)}
@@ -4973,7 +4957,7 @@ function SongPitchlistTab({ dealId, deal, onDealRefresh }: { dealId: string; dea
 // MUSIC LICENSES TAB
 // ===========================================================================
 
-function MusicLicensesTab({ dealId, deal, onDealRefresh }: { dealId: string; deal: Deal; onDealRefresh: () => void }) {
+function MusicLicensesTab({ dealId, deal }: { dealId: string; deal: Deal }) {
   const [licenses, setLicenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
