@@ -49,8 +49,10 @@ export default function SongsPage() {
     duration_seconds: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchSongs = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch('/api/songs');
       if (res.ok) {
@@ -58,6 +60,7 @@ export default function SongsPage() {
         setSongs(json.data || []);
       }
     } catch (err) {
+      setError('Failed to load songs. Please try again.');
       console.error('Failed to fetch songs:', err);
     } finally {
       setLoading(false);
@@ -101,13 +104,15 @@ export default function SongsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        setModalOpen(false);
-        setFormData({ title: '', artist_name: '', album: '', release_year: '', genre: '', duration_seconds: '' });
-        fetchSongs();
+      if (!res.ok) {
+        alert('Failed to create song. Please try again.');
+        return;
       }
+      setModalOpen(false);
+      setFormData({ title: '', artist_name: '', album: '', release_year: '', genre: '', duration_seconds: '' });
+      fetchSongs();
     } catch (err) {
-      console.error('Failed to create song:', err);
+      alert('Failed to create song. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -141,6 +146,8 @@ export default function SongsPage() {
             <span className="mr-1.5 text-lg leading-none">+</span> Add Song
           </button>
         </div>
+
+        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center justify-between"><span>{error}</span><button onClick={() => { setError(null); fetchSongs(); }} className="text-red-600 hover:text-red-800 font-medium text-xs">Try again</button></div>}
 
         {/* Search */}
         <div className="mb-6">
@@ -208,11 +215,11 @@ export default function SongsPage() {
       {/* Add Song Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setModalOpen(false)} />
+          <div className="absolute inset-0 bg-black/40" onClick={() => { setModalOpen(false); setFormData({ title: '', artist_name: '', album: '', release_year: '', genre: '', duration_seconds: '' }); }} />
           <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Add New Song</h2>
-              <button onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+              <button onClick={() => { setModalOpen(false); setFormData({ title: '', artist_name: '', album: '', release_year: '', genre: '', duration_seconds: '' }); }} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -244,7 +251,7 @@ export default function SongsPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                <button type="button" onClick={() => { setModalOpen(false); setFormData({ title: '', artist_name: '', album: '', release_year: '', genre: '', duration_seconds: '' }); }} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
                 <button type="submit" disabled={submitting} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50">{submitting ? 'Saving...' : 'Add Song'}</button>
               </div>
             </form>

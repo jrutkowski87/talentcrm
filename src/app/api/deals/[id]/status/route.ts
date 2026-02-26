@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDealById, updateDealStatus, updateDeal, type DealStatus } from '@/lib/db/deals';
 import { getDb, generateId, getCurrentTimestamp } from '@/lib/db';
+import { addTimelineEntry } from '@/lib/db/timeline';
 import { createTask } from '@/lib/db/tasks';
 
 // Auto-generated tasks per pipeline stage
@@ -80,16 +81,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
           // Log approval timeline event
           try {
-            const db = getDb();
-            db.prepare(
-              `INSERT INTO deal_timeline (id, deal_id, event_type, description, created_at)
-               VALUES (?, ?, 'approval_granted', ?, ?)`
-            ).run(
-              generateId(),
-              params.id,
-              `Approval to engage granted by ${approval_by}${approval_notes ? ': ' + approval_notes : ''}`,
-              now
-            );
+            addTimelineEntry({
+              deal_id: params.id,
+              event_type: 'approval_granted',
+              title: 'Approval granted',
+              description: `Approval to engage granted by ${approval_by}${approval_notes ? ': ' + approval_notes : ''}`,
+            });
           } catch {
             // swallow timeline error
           }

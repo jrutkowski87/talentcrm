@@ -20,6 +20,10 @@ const TABLES = [
   'email_log',
   'casting_frameworks',
   'document_templates',
+  'deal_notes',
+  'deal_tasks',
+  'deal_templates',
+  'saved_views',
 ] as const;
 
 export async function GET() {

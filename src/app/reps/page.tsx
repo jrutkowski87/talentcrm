@@ -44,8 +44,10 @@ export default function RepsPage() {
     role: 'agent',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchReps = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch('/api/reps');
       if (res.ok) {
@@ -53,6 +55,7 @@ export default function RepsPage() {
         setReps(json.data || []);
       }
     } catch (err) {
+      setError('Failed to load reps. Please try again.');
       console.error('Failed to fetch reps:', err);
     } finally {
       setLoading(false);
@@ -85,7 +88,7 @@ export default function RepsPage() {
       result = result.filter(
         (r) =>
           r.name.toLowerCase().includes(q) ||
-          r.agency.toLowerCase().includes(q)
+          (r.agency || '').toLowerCase().includes(q)
       );
     }
 
@@ -121,13 +124,15 @@ export default function RepsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      if (res.ok) {
-        setModalOpen(false);
-        setFormData({ name: '', email: '', phone: '', agency: '', role: 'agent' });
-        fetchReps();
+      if (!res.ok) {
+        alert('Failed to create rep. Please try again.');
+        return;
       }
+      setModalOpen(false);
+      setFormData({ name: '', email: '', phone: '', agency: '', role: 'agent' });
+      fetchReps();
     } catch (err) {
-      console.error('Failed to create rep:', err);
+      alert('Failed to create rep. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -173,6 +178,8 @@ export default function RepsPage() {
             <span className="mr-1.5 text-lg leading-none">+</span> Add Rep
           </button>
         </div>
+
+        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center justify-between"><span>{error}</span><button onClick={() => { setError(null); fetchReps(); }} className="text-red-600 hover:text-red-800 font-medium text-xs">Try again</button></div>}
 
         {/* Search & Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -292,13 +299,13 @@ export default function RepsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/40"
-            onClick={() => setModalOpen(false)}
+            onClick={() => { setModalOpen(false); setFormData({ name: '', email: '', phone: '', agency: '', role: 'agent' }); }}
           />
           <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Add New Rep</h2>
               <button
-                onClick={() => setModalOpen(false)}
+                onClick={() => { setModalOpen(false); setFormData({ name: '', email: '', phone: '', agency: '', role: 'agent' }); }}
                 className="text-gray-400 hover:text-gray-600 text-xl leading-none"
               >
                 &times;
@@ -382,7 +389,7 @@ export default function RepsPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setModalOpen(false)}
+                  onClick={() => { setModalOpen(false); setFormData({ name: '', email: '', phone: '', agency: '', role: 'agent' }); }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   Cancel

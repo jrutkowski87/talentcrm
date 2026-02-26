@@ -216,6 +216,7 @@ const DEAL_TYPES = ['talent', 'music', 'talent_and_music'] as const;
 
 export const dealCreateSchema: Schema = {
   deal_name:      { type: 'string', required: true, maxLength: 300 },
+  client_id:      { type: 'string', required: true },
   campaign_name:  { type: 'string', maxLength: 300 },
   deal_type:      { type: 'string', oneOf: [...DEAL_TYPES] },
   status:         { type: 'string', oneOf: [...ALL_DEAL_STATUSES] },

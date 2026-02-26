@@ -49,8 +49,10 @@ export default function RightsHoldersPage() {
     contact_title: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchHolders = useCallback(async () => {
+    setError(null);
     try {
       const res = await fetch('/api/rights-holders');
       if (res.ok) {
@@ -58,6 +60,7 @@ export default function RightsHoldersPage() {
         setHolders(json.data || []);
       }
     } catch (err) {
+      setError('Failed to load rights holders. Please try again.');
       console.error('Failed to fetch rights holders:', err);
     } finally {
       setLoading(false);
@@ -126,13 +129,15 @@ export default function RightsHoldersPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        setModalOpen(false);
-        setFormData({ name: '', type: 'publisher', parent_company: '', pro_affiliation: '', email: '', phone: '', contact_name: '', contact_title: '' });
-        fetchHolders();
+      if (!res.ok) {
+        alert('Failed to create rights holder. Please try again.');
+        return;
       }
+      setModalOpen(false);
+      setFormData({ name: '', type: 'publisher', parent_company: '', pro_affiliation: '', email: '', phone: '', contact_name: '', contact_title: '' });
+      fetchHolders();
     } catch (err) {
-      console.error('Failed to create rights holder:', err);
+      alert('Failed to create rights holder. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -170,6 +175,8 @@ export default function RightsHoldersPage() {
             <span className="mr-1.5 text-lg leading-none">+</span> Add Rights Holder
           </button>
         </div>
+
+        {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center justify-between"><span>{error}</span><button onClick={() => { setError(null); fetchHolders(); }} className="text-red-600 hover:text-red-800 font-medium text-xs">Try again</button></div>}
 
         {/* Search & Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -268,11 +275,11 @@ export default function RightsHoldersPage() {
       {/* Add Rights Holder Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setModalOpen(false)} />
+          <div className="absolute inset-0 bg-black/40" onClick={() => { setModalOpen(false); setFormData({ name: '', type: 'publisher', parent_company: '', pro_affiliation: '', email: '', phone: '', contact_name: '', contact_title: '' }); }} />
           <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Add Rights Holder</h2>
-              <button onClick={() => setModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+              <button onClick={() => { setModalOpen(false); setFormData({ name: '', type: 'publisher', parent_company: '', pro_affiliation: '', email: '', phone: '', contact_name: '', contact_title: '' }); }} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -320,7 +327,7 @@ export default function RightsHoldersPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                <button type="button" onClick={() => { setModalOpen(false); setFormData({ name: '', type: 'publisher', parent_company: '', pro_affiliation: '', email: '', phone: '', contact_name: '', contact_title: '' }); }} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
                 <button type="submit" disabled={submitting} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50">{submitting ? 'Saving...' : 'Add Rights Holder'}</button>
               </div>
             </form>

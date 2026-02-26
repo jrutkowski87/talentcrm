@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDealById, updateDeal } from '@/lib/db/deals';
-import { getDb, generateId, getCurrentTimestamp } from '@/lib/db';
+import { getCurrentTimestamp } from '@/lib/db';
+import { addTimelineEntry } from '@/lib/db/timeline';
 
 /**
  * POST /api/deals/[id]/execute-contract
@@ -38,16 +39,12 @@ export async function POST(
 
     // Log timeline event
     try {
-      const db = getDb();
-      db.prepare(
-        `INSERT INTO deal_timeline (id, deal_id, event_type, description, created_at)
-         VALUES (?, ?, 'document_signed', ?, ?)`
-      ).run(
-        generateId(),
-        params.id,
-        'Contract fully executed (signed by both parties).',
-        now
-      );
+      addTimelineEntry({
+        deal_id: params.id,
+        event_type: 'document_signed',
+        title: 'Contract executed',
+        description: 'Contract fully executed (signed by both parties).',
+      });
     } catch {
       // swallow
     }

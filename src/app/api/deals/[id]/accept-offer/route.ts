@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDealById, updateDeal } from '@/lib/db/deals';
-import { getDb, generateId, getCurrentTimestamp } from '@/lib/db';
+import { getCurrentTimestamp } from '@/lib/db';
+import { addTimelineEntry } from '@/lib/db/timeline';
 
 /**
  * POST /api/deals/[id]/accept-offer
@@ -75,16 +76,12 @@ export async function POST(
 
     // Log timeline event
     try {
-      const db = getDb();
-      db.prepare(
-        `INSERT INTO deal_timeline (id, deal_id, event_type, description, created_at)
-         VALUES (?, ?, 'offer_accepted', ?, ?)`
-      ).run(
-        generateId(),
-        params.id,
-        `Offer accepted${deal.talent_name ? ' by ' + deal.talent_name : ''}. Snapshot locked at v${deal.offer_sheet_version}.`,
-        now
-      );
+      addTimelineEntry({
+        deal_id: params.id,
+        event_type: 'offer_accepted',
+        title: 'Offer accepted',
+        description: `Offer accepted${deal.talent_name ? ' by ' + deal.talent_name : ''}. Snapshot locked at v${deal.offer_sheet_version}.`,
+      });
     } catch {
       // swallow
     }

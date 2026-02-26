@@ -14,8 +14,8 @@ interface Deal {
   status: string;
   deal_type: 'talent' | 'music' | 'talent_and_music';
   client_name: string;
-  talent_name: string;
-  fee_total: number;
+  talent_name: string | null;
+  fee_total: number | null;
   fee_per_side: number | null;
   updated_at: string;
 }
@@ -878,13 +878,13 @@ export default function DashboardPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black/50"
-            onClick={() => setShowNewDeal(false)}
+            onClick={() => { setShowNewDeal(false); setDealForm({ deal_name: '', campaign_name: '', client_id: '', deal_type: 'talent', status: 'creative_brief' }); setSelectedTemplateId(''); setShowInlineClient(false); setInlineClientForm({ name: '', agency: '' }); }}
           />
           <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-gray-900">New Deal</h2>
               <button
-                onClick={() => setShowNewDeal(false)}
+                onClick={() => { setShowNewDeal(false); setDealForm({ deal_name: '', campaign_name: '', client_id: '', deal_type: 'talent', status: 'creative_brief' }); setSelectedTemplateId(''); setShowInlineClient(false); setInlineClientForm({ name: '', agency: '' }); }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1077,7 +1077,7 @@ export default function DashboardPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowNewDeal(false)}
+                  onClick={() => { setShowNewDeal(false); setDealForm({ deal_name: '', campaign_name: '', client_id: '', deal_type: 'talent', status: 'creative_brief' }); setSelectedTemplateId(''); setShowInlineClient(false); setInlineClientForm({ name: '', agency: '' }); }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   Cancel

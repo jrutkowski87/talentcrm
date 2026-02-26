@@ -351,6 +351,18 @@ export default function DealDetailPage() {
   // Export dropdown
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showExportMenu]);
 
   // -----------------------------------------------------------------------
   // Fetch deal
@@ -671,7 +683,7 @@ export default function DealDetailPage() {
                 Template
               </button>
               {/* Export Button */}
-              <div className="relative">
+              <div className="relative" ref={exportMenuRef}>
                 <button
                   onClick={() => setShowExportMenu(!showExportMenu)}
                   disabled={exporting}

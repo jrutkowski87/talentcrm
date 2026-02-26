@@ -387,13 +387,13 @@ export default function TalentDirectoryPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="fixed inset-0 bg-black/50"
-            onClick={() => setShowModal(false)}
+            onClick={() => { setShowModal(false); setFormData({ name: '', category: 'actor', location: '', rate_range: '', bio: '' }); setSelectedRepId(''); setRepRelationship('agent'); setShowInlineRep(false); setInlineRepForm({ name: '', email: '', phone: '', agency: '', role: 'agent' }); }}
           />
           <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Add Talent</h2>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => { setShowModal(false); setFormData({ name: '', category: 'actor', location: '', rate_range: '', bio: '' }); setSelectedRepId(''); setRepRelationship('agent'); setShowInlineRep(false); setInlineRepForm({ name: '', email: '', phone: '', agency: '', role: 'agent' }); }}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -585,7 +585,7 @@ export default function TalentDirectoryPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => { setShowModal(false); setFormData({ name: '', category: 'actor', location: '', rate_range: '', bio: '' }); setSelectedRepId(''); setRepRelationship('agent'); setShowInlineRep(false); setInlineRepForm({ name: '', email: '', phone: '', agency: '', role: 'agent' }); }}
                   className="btn-secondary text-sm px-4 py-2"
                 >
                   Cancel

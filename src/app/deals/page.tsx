@@ -100,6 +100,7 @@ export default function DealsPage() {
   // Bulk selection
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedDealIds, setSelectedDealIds] = useState<Set<string>>(new Set());
+  const [bulkTargetStatus, setBulkTargetStatus] = useState('');
 
   const toggleSelection = (id: string) => {
     setSelectedDealIds(prev => {
@@ -749,9 +750,9 @@ export default function DealsPage() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white rounded-xl shadow-2xl px-6 py-3 flex items-center gap-4 z-40">
           <span className="text-sm font-medium">{selectedDealIds.size} deal{selectedDealIds.size > 1 ? 's' : ''} selected</span>
           <select
-            onChange={(e) => handleBulkStatus(e.target.value)}
+            value={bulkTargetStatus}
+            onChange={(e) => setBulkTargetStatus(e.target.value)}
             className="bg-gray-800 text-white text-sm rounded-lg px-3 py-1.5 border border-gray-700 focus:ring-1 focus:ring-indigo-500 outline-none"
-            defaultValue=""
           >
             <option value="" disabled>Move to...</option>
             {(dealTypeFilter === 'music' ? MUSIC_PIPELINE_STAGES : TALENT_PIPELINE_STAGES).map(stage => (
@@ -761,8 +762,16 @@ export default function DealsPage() {
             <option value="archived">Archive</option>
             <option value="dead">Dead</option>
           </select>
+          {bulkTargetStatus && (
+            <button
+              onClick={() => { handleBulkStatus(bulkTargetStatus); setBulkTargetStatus(''); }}
+              className="px-3 py-1.5 text-sm font-medium bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Confirm Move
+            </button>
+          )}
           <button
-            onClick={() => { setSelectedDealIds(new Set()); setSelectionMode(false); }}
+            onClick={() => { setSelectedDealIds(new Set()); setSelectionMode(false); setBulkTargetStatus(''); }}
             className="text-sm text-gray-400 hover:text-white transition-colors"
           >
             Cancel
@@ -775,13 +784,13 @@ export default function DealsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
             className="absolute inset-0 bg-black bg-opacity-50"
-            onClick={() => setShowNewDealModal(false)}
+            onClick={() => { setShowNewDealModal(false); setFormData({ deal_name: '', campaign_name: '', client_id: '', deal_type: 'talent', status: 'creative_brief' }); setSelectedTemplateId(''); setShowInlineClient(false); setInlineClientForm({ name: '', agency: '' }); }}
           />
           <div className="relative bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-gray-900">New Deal</h2>
               <button
-                onClick={() => setShowNewDealModal(false)}
+                onClick={() => { setShowNewDealModal(false); setFormData({ deal_name: '', campaign_name: '', client_id: '', deal_type: 'talent', status: 'creative_brief' }); setSelectedTemplateId(''); setShowInlineClient(false); setInlineClientForm({ name: '', agency: '' }); }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -976,7 +985,7 @@ export default function DealsPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowNewDealModal(false)}
+                  onClick={() => { setShowNewDealModal(false); setFormData({ deal_name: '', campaign_name: '', client_id: '', deal_type: 'talent', status: 'creative_brief' }); setSelectedTemplateId(''); setShowInlineClient(false); setInlineClientForm({ name: '', agency: '' }); }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
                   Cancel
