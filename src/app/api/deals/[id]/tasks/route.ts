@@ -6,14 +6,16 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   try {
     const tasks = getTasksByDeal(params.id);
     return NextResponse.json({ success: true, data: tasks });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch tasks:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
-    const body = await req.json();
+    let body;
+    try { body = await req.json(); } catch { return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 }); }
     if (!body.title || !body.title.trim()) {
       return NextResponse.json({ success: false, error: 'Task title is required' }, { status: 400 });
     }
@@ -38,7 +40,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     } catch { /* best effort */ }
 
     return NextResponse.json({ success: true, data: task }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to create task:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

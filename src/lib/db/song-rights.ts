@@ -75,15 +75,23 @@ export function addRightsHolderToSong(data: {
   ).get(id) as SongRightsEntry;
 }
 
+const SRH_UPDATABLE = new Set([
+  'song_id', 'rights_holder_id', 'side', 'share_percentage',
+  'role', 'controlled_by_id', 'territory', 'notes',
+]);
+
 export function updateSongRightsEntry(id: string, data: Partial<SongRightsEntry>): SongRightsEntry | undefined {
   const db = getDb();
   const existing = db.prepare('SELECT id FROM song_rights_holders WHERE id = ?').get(id);
   if (!existing) return undefined;
 
-  const { id: _id, created_at: _ca, updated_at: _ua, rights_holder_name: _n, rights_holder_type: _t, ...updateData } = data as any;
   const now = getCurrentTimestamp();
+  const fields: string[] = [];
+  const values: unknown[] = [];
 
-  const fields = Object.keys(updateData);
+  for (const [key, val] of Object.entries(data)) {
+    if (SRH_UPDATABLE.has(key)) { fields.push(`${key} = ?`); values.push(val); }
+  }
   if (fields.length === 0) {
     return db.prepare(
       `SELECT srh.*, rh.name AS rights_holder_name, rh.type AS rights_holder_type
@@ -93,10 +101,10 @@ export function updateSongRightsEntry(id: string, data: Partial<SongRightsEntry>
     ).get(id) as SongRightsEntry;
   }
 
-  const setClause = fields.map((f) => `${f} = ?`).join(', ');
-  const values = fields.map((f) => updateData[f]);
-
-  db.prepare(`UPDATE song_rights_holders SET ${setClause}, updated_at = ? WHERE id = ?`).run(...values, now, id);
+  fields.push('updated_at = ?');
+  values.push(now);
+  values.push(id);
+  db.prepare(`UPDATE song_rights_holders SET ${fields.join(', ')} WHERE id = ?`).run(...values);
 
   return db.prepare(
     `SELECT srh.*, rh.name AS rights_holder_name, rh.type AS rights_holder_type

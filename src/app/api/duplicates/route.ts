@@ -66,7 +66,8 @@ export async function GET(request: Request) {
       .sort((a, b) => (a.matchType === 'exact' ? -1 : 0) - (b.matchType === 'exact' ? -1 : 0));
 
     return NextResponse.json({ success: true, duplicates });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to check duplicates:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -16,8 +16,9 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     } catch { /* best effort */ }
 
     return NextResponse.json({ success: true, data: newDeal }, { status: 201 });
-  } catch (error: any) {
-    const status = error.message === 'Source deal not found' ? 404 : 500;
-    return NextResponse.json({ success: false, error: error.message }, { status });
+  } catch (error: unknown) {
+    console.error('Failed to duplicate deal:', error);
+    const is404 = error instanceof Error && error.message === 'Source deal not found';
+    return NextResponse.json({ success: false, error: is404 ? 'Source deal not found' : 'Internal server error' }, { status: is404 ? 404 : 500 });
   }
 }

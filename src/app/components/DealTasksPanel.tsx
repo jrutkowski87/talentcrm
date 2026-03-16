@@ -115,7 +115,7 @@ export default function DealTasksPanel({ dealId }: { dealId: string }) {
 
   const activeTasks = tasks.filter(t => t.status !== 'completed');
   const completedTasks = tasks.filter(t => t.status === 'completed');
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local timezone
 
   if (loading) {
     return <div className="p-6 text-sm text-gray-500">Loading tasks...</div>;

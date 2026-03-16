@@ -87,21 +87,29 @@ export function createSong(data: Partial<Song>): Song {
   return db.prepare('SELECT * FROM songs WHERE id = ?').get(id) as Song;
 }
 
+const SONG_UPDATABLE = new Set([
+  'title', 'artist_name', 'album', 'release_year', 'genre',
+  'duration_seconds', 'isrc', 'spotify_url', 'apple_music_url', 'notes',
+]);
+
 export function updateSong(id: string, data: Partial<Song>): Song | undefined {
   const db = getDb();
   const existing = db.prepare('SELECT id FROM songs WHERE id = ?').get(id);
   if (!existing) return undefined;
 
-  const { id: _id, created_at: _ca, updated_at: _ua, ...updateData } = data as any;
   const now = getCurrentTimestamp();
+  const fields: string[] = [];
+  const values: unknown[] = [];
 
-  const fields = Object.keys(updateData);
+  for (const [key, val] of Object.entries(data)) {
+    if (SONG_UPDATABLE.has(key)) { fields.push(`${key} = ?`); values.push(val); }
+  }
   if (fields.length === 0) return db.prepare('SELECT * FROM songs WHERE id = ?').get(id) as Song;
 
-  const setClause = fields.map((f) => `${f} = ?`).join(', ');
-  const values = fields.map((f) => updateData[f]);
-
-  db.prepare(`UPDATE songs SET ${setClause}, updated_at = ? WHERE id = ?`).run(...values, now, id);
+  fields.push('updated_at = ?');
+  values.push(now);
+  values.push(id);
+  db.prepare(`UPDATE songs SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   return db.prepare('SELECT * FROM songs WHERE id = ?').get(id) as Song;
 }
 
@@ -113,6 +121,6 @@ export function searchSongs(query: string): Song[] {
   const db = getDb();
   const pattern = `%${query}%`;
   return db.prepare(
-    `SELECT * FROM songs WHERE title LIKE ? OR artist_name LIKE ? OR album LIKE ? ORDER BY updated_at DESC`
+    `SELECT * FROM songs WHERE title LIKE ? OR artist_name LIKE ? OR album LIKE ? ORDER BY updated_at DESC LIMIT 10`
   ).all(pattern, pattern, pattern) as Song[];
 }

@@ -4,8 +4,8 @@ import { getUpcomingTasks, getTaskCounts } from '@/lib/db/tasks';
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const days = parseInt(searchParams.get('days') || '7', 10);
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const days = Math.max(1, Math.min(parseInt(searchParams.get('days') || '7') || 7, 90));
+    const limit = Math.max(1, Math.min(parseInt(searchParams.get('limit') || '20') || 20, 100));
 
     const tasks = getUpcomingTasks(days).slice(0, limit);
     const counts = getTaskCounts();
@@ -17,7 +17,8 @@ export async function GET(req: Request) {
         counts,
       },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch upcoming tasks:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

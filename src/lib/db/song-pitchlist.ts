@@ -70,21 +70,28 @@ export function addToPitchlist(data: {
   return db.prepare(`${SELECT_WITH_SONG} WHERE p.id = ?`).get(id) as PitchlistEntry;
 }
 
+const PITCH_UPDATABLE = new Set([
+  'deal_id', 'song_id', 'status', 'notes', 'priority', 'fit_score',
+]);
+
 export function updatePitchEntry(id: string, data: Partial<PitchlistEntry>): PitchlistEntry | undefined {
   const db = getDb();
   const existing = db.prepare('SELECT id FROM deal_song_pitchlist WHERE id = ?').get(id);
   if (!existing) return undefined;
 
-  const { id: _id, created_at: _ca, updated_at: _ua, song_title: _st, artist_name: _an, genre: _g, duration_seconds: _ds, ...updateData } = data as any;
   const now = getCurrentTimestamp();
+  const fields: string[] = [];
+  const values: unknown[] = [];
 
-  const fields = Object.keys(updateData);
+  for (const [key, val] of Object.entries(data)) {
+    if (PITCH_UPDATABLE.has(key)) { fields.push(`${key} = ?`); values.push(val); }
+  }
   if (fields.length === 0) return db.prepare(`${SELECT_WITH_SONG} WHERE p.id = ?`).get(id) as PitchlistEntry;
 
-  const setClause = fields.map((f) => `${f} = ?`).join(', ');
-  const values = fields.map((f) => updateData[f]);
-
-  db.prepare(`UPDATE deal_song_pitchlist SET ${setClause}, updated_at = ? WHERE id = ?`).run(...values, now, id);
+  fields.push('updated_at = ?');
+  values.push(now);
+  values.push(id);
+  db.prepare(`UPDATE deal_song_pitchlist SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   return db.prepare(`${SELECT_WITH_SONG} WHERE p.id = ?`).get(id) as PitchlistEntry;
 }
 

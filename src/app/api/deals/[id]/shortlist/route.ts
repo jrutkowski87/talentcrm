@@ -6,14 +6,16 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   try {
     const entries = getShortlistByDeal(params.id);
     return NextResponse.json({ success: true, data: entries });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch shortlist:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
-    const body = await request.json();
+    let body;
+    try { body = await request.json(); } catch { return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 }); }
 
     // Auto-populate from talent record if not provided
     if (body.talent_id) {
@@ -42,7 +44,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     const entry = addToShortlist({ ...body, deal_id: params.id });
     return NextResponse.json({ success: true, data: entry }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to add to shortlist:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

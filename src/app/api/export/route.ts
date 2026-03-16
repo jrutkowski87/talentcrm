@@ -62,9 +62,10 @@ export async function GET() {
         'Content-Disposition': `attachment; filename="talentcrm-backup-${date}.json"`,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    console.error('Failed to export data:', error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: 'Internal server error' },
       { status: 500 }
     );
   }

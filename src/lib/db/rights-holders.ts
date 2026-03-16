@@ -94,21 +94,30 @@ export function createRightsHolder(data: Partial<RightsHolder>): RightsHolder {
   return db.prepare('SELECT * FROM rights_holders WHERE id = ?').get(id) as RightsHolder;
 }
 
+const RH_UPDATABLE = new Set([
+  'name', 'type', 'parent_company', 'pro_affiliation', 'ipi_number',
+  'email', 'phone', 'contact_name', 'contact_title', 'address', 'notes',
+  'avg_response_days', 'deals_offered', 'deals_closed',
+]);
+
 export function updateRightsHolder(id: string, data: Partial<RightsHolder>): RightsHolder | undefined {
   const db = getDb();
   const existing = db.prepare('SELECT id FROM rights_holders WHERE id = ?').get(id);
   if (!existing) return undefined;
 
-  const { id: _id, created_at: _ca, updated_at: _ua, ...updateData } = data as any;
   const now = getCurrentTimestamp();
+  const fields: string[] = [];
+  const values: unknown[] = [];
 
-  const fields = Object.keys(updateData);
+  for (const [key, val] of Object.entries(data)) {
+    if (RH_UPDATABLE.has(key)) { fields.push(`${key} = ?`); values.push(val); }
+  }
   if (fields.length === 0) return db.prepare('SELECT * FROM rights_holders WHERE id = ?').get(id) as RightsHolder;
 
-  const setClause = fields.map((f) => `${f} = ?`).join(', ');
-  const values = fields.map((f) => updateData[f]);
-
-  db.prepare(`UPDATE rights_holders SET ${setClause}, updated_at = ? WHERE id = ?`).run(...values, now, id);
+  fields.push('updated_at = ?');
+  values.push(now);
+  values.push(id);
+  db.prepare(`UPDATE rights_holders SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   return db.prepare('SELECT * FROM rights_holders WHERE id = ?').get(id) as RightsHolder;
 }
 
@@ -120,6 +129,6 @@ export function searchRightsHolders(query: string): RightsHolder[] {
   const db = getDb();
   const pattern = `%${query}%`;
   return db.prepare(
-    `SELECT * FROM rights_holders WHERE name LIKE ? OR parent_company LIKE ? OR contact_name LIKE ? ORDER BY updated_at DESC`
+    `SELECT * FROM rights_holders WHERE name LIKE ? OR parent_company LIKE ? OR contact_name LIKE ? ORDER BY updated_at DESC LIMIT 10`
   ).all(pattern, pattern, pattern) as RightsHolder[];
 }

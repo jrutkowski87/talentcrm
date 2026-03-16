@@ -6,8 +6,9 @@ export async function GET() {
   try {
     const clients = getAllClients();
     return NextResponse.json({ success: true, data: clients });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch clients:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -21,7 +22,8 @@ export async function POST(request: Request) {
 
     const client = createClient(result.data);
     return NextResponse.json({ success: true, data: client }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to create client:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

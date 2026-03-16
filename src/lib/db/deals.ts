@@ -127,6 +127,7 @@ export interface Deal {
   music_status: string | null;
   song_id: string | null;
   license_type: string | null;
+  usage_description: string | null;
   usage_type: string[];
   territory: string | null;
   media: string[];
@@ -349,6 +350,7 @@ export function createDeal(data: Partial<Deal>): Deal {
     music_status: data.music_status ?? null,
     song_id: data.song_id || null,
     license_type: data.license_type ?? null,
+    usage_description: data.usage_description ?? null,
     usage_type: data.usage_type ?? [],
     territory: data.territory ?? null,
     media: data.media ?? [],
@@ -393,6 +395,35 @@ export function createDeal(data: Partial<Deal>): Deal {
 }
 
 /**
+ * Columns that can be written via updateDeal. Everything else is rejected.
+ */
+const DEAL_UPDATABLE = new Set([
+  'client_id', 'sub_brand_id', 'deal_name', 'campaign_name', 'status',
+  'talent_id', 'brief_raw_text', 'brief_parsed_data',
+  'effective_date', 'service_days', 'social_posts',
+  'media_opportunities', 'ambassador_duties', 'approval_rights',
+  'image_rights', 'permitted_usage', 'post_term_rules',
+  'term_duration', 'term_duration_weeks', 'term_start_trigger',
+  'term_start_date', 'term_end_date',
+  'fee_total', 'fee_currency', 'fee_structure', 'fee_payments',
+  'fee_net_terms', 'fee_mfn', 'fee_mfn_details', 'fee_revenue_share', 'fee_ancillary',
+  'exclusivity_category', 'exclusivity_brands', 'exclusivity_duration',
+  'travel', 'hmu', 'talent_criteria', 'governing_law',
+  'non_union', 'confidential',
+  'lender_entity', 'lender_address', 'company_signatory', 'talent_signatory',
+  'notice_emails', 'termination_cure_days', 'morals_clause', 'morals_clause_details',
+  'pro_rata_formula',
+  'materials_stills_count', 'materials_videos', 'materials_edits_versions', 'materials_alternate_assets',
+  'deal_type', 'music_status', 'song_id', 'license_type', 'usage_type', 'territory', 'media',
+  'fee_per_side', 'master_fee_override', 'usage_description',
+  'approval_to_engage_at', 'approval_to_engage_by', 'approval_notes',
+  'offer_snapshot',
+  'usage_start_date', 'usage_end_date', 'deliverables_status',
+  'admin_checklist', 'w9_received', 'w9_received_date', 'invoice_received', 'invoice_received_date',
+  'offer_sheet_version', 'longform_version', 'offer_accepted_at', 'contract_executed_at',
+]);
+
+/**
  * Fields excluded from audit logging.
  */
 const AUDIT_SKIP_FIELDS = new Set(['id', 'created_at', 'updated_at']);
@@ -417,23 +448,25 @@ function auditStringify(value: unknown): string | null {
 export function updateDeal(id: string, data: Partial<Deal>): Deal | undefined {
   const db = getDb();
 
-  // Fetch the full current row (raw, before JSON parsing) so we can compare
-  const currentRow = db.prepare('SELECT * FROM deals WHERE id = ?').get(id) as Record<string, any> | undefined;
-  if (!currentRow) return undefined;
-
-  // Remove fields that should not be overwritten directly
-  const { id: _id, created_at: _ca, ...updateData } = data as any;
-  updateData.updated_at = getCurrentTimestamp();
-
-  const prepared = stringifyJsonFields(updateData);
-
-  const columns = Object.keys(prepared);
-  if (columns.length === 0) return getDealById(id);
-
-  const setClause = columns.map((col) => `${col} = ?`).join(', ');
-  const values = columns.map((col) => prepared[col]);
-
   const runUpdate = db.transaction(() => {
+    // Fetch the full current row inside the transaction for consistent audit comparison
+    const currentRow = db.prepare('SELECT * FROM deals WHERE id = ?').get(id) as Record<string, any> | undefined;
+    if (!currentRow) return null;
+
+    // Filter to allowlisted columns only
+    const updateData: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(data)) {
+      if (DEAL_UPDATABLE.has(key)) updateData[key] = val;
+    }
+    updateData.updated_at = getCurrentTimestamp();
+
+    const prepared = stringifyJsonFields(updateData);
+    const columns = Object.keys(prepared);
+    if (columns.length <= 1) return 'noop'; // only updated_at
+
+    const setClause = columns.map((col) => `${col} = ?`).join(', ');
+    const values = columns.map((col) => prepared[col]);
+
     // --- Audit logging (best-effort) ---
     try {
       for (const col of columns) {
@@ -458,9 +491,11 @@ export function updateDeal(id: string, data: Partial<Deal>): Deal | undefined {
 
     // --- Apply the update ---
     db.prepare(`UPDATE deals SET ${setClause} WHERE id = ?`).run(...values, id);
+    return 'ok';
   });
 
-  runUpdate();
+  const result = runUpdate();
+  if (result === null) return undefined;
 
   return getDealById(id);
 }
@@ -473,24 +508,31 @@ export function updateDealStatus(id: string, status: DealStatus): Deal | undefin
   const db = getDb();
   const now = getCurrentTimestamp();
 
-  const existing = db.prepare('SELECT id, status FROM deals WHERE id = ?').get(id) as
-    | { id: string; status: string }
-    | undefined;
-  if (!existing) return undefined;
+  const runStatusUpdate = db.transaction(() => {
+    const existing = db.prepare('SELECT id, status FROM deals WHERE id = ?').get(id) as
+      | { id: string; status: string }
+      | undefined;
+    if (!existing) return null;
 
-  const previousStatus = existing.status;
+    const previousStatus = existing.status;
 
-  db.prepare('UPDATE deals SET status = ?, updated_at = ? WHERE id = ?').run(status, now, id);
+    db.prepare('UPDATE deals SET status = ?, updated_at = ? WHERE id = ?').run(status, now, id);
 
-  // Insert a timeline entry for the status change
-  try {
-    db.prepare(
-      `INSERT INTO deal_timeline (id, deal_id, event_type, old_value, new_value, created_at)
-       VALUES (?, ?, 'status_change', ?, ?, ?)`
-    ).run(generateId(), id, previousStatus, status, now);
-  } catch {
-    // Timeline table may not exist yet; swallow the error so the status update still succeeds.
-  }
+    // Insert a timeline entry for the status change
+    try {
+      db.prepare(
+        `INSERT INTO deal_timeline (id, deal_id, event_type, old_value, new_value, created_at)
+         VALUES (?, ?, 'status_change', ?, ?, ?)`
+      ).run(generateId(), id, previousStatus, status, now);
+    } catch (err) {
+      console.warn('Failed to insert timeline entry for status change:', err);
+    }
+
+    return 'ok';
+  });
+
+  const result = runStatusUpdate();
+  if (result === null) return undefined;
 
   return getDealById(id);
 }

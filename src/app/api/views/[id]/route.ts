@@ -8,14 +8,16 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       return NextResponse.json({ success: false, error: 'View not found' }, { status: 404 });
     }
     return NextResponse.json({ success: true, data: view });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch view:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
-    const body = await request.json();
+    let body;
+    try { body = await request.json(); } catch { return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 }); }
     const { name, description, filter_data, is_default } = body;
 
     const updated = updateView(params.id, { name, description, filter_data, is_default });
@@ -24,8 +26,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to update view:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -36,7 +39,8 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
       return NextResponse.json({ success: false, error: 'View not found' }, { status: 404 });
     }
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to delete view:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -61,7 +61,8 @@ export async function GET() {
     });
 
     return NextResponse.json({ success: true, data: alerts, count: alerts.length });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch alerts:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

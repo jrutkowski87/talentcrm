@@ -5,14 +5,16 @@ export async function GET() {
   try {
     const views = getAllViews();
     return NextResponse.json({ success: true, data: views });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch views:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    let body;
+    try { body = await request.json(); } catch { return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 }); }
     const { name, description, filter_data, is_default } = body;
 
     if (!name || !filter_data) {
@@ -30,7 +32,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ success: true, data: view }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to create view:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

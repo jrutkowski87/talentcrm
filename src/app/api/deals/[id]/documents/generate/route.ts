@@ -9,7 +9,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ success: false, error: 'Deal not found' }, { status: 404 });
     }
 
-    const body = await req.json();
+    let body;
+    try { body = await req.json(); } catch { return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 }); }
     const { type, aiPolish } = body;
 
     if (!type || !['offer_sheet', 'long_form'].includes(type)) {
@@ -37,8 +38,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
         'Content-Length': String(buffer.length),
       },
     });
-  } catch (error: any) {
-    console.error('Document generation error:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to generate document:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

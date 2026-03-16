@@ -8,8 +8,9 @@ export async function GET(request: Request) {
     const q = searchParams.get('q');
     const holders = q ? searchRightsHolders(q) : getAllRightsHolders();
     return NextResponse.json({ success: true, data: holders });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch rights holders:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -23,7 +24,8 @@ export async function POST(request: Request) {
 
     const holder = createRightsHolder(result.data);
     return NextResponse.json({ success: true, data: holder }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to create rights holder:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

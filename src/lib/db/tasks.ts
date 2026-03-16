@@ -118,7 +118,7 @@ export function deleteTask(id: string): boolean {
 
 export function getTaskCounts(): { overdue: number; due_today: number; total_pending: number } {
   const db = getDb();
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD in local timezone
 
   const overdue = (db.prepare(
     `SELECT count(*) as count FROM deal_tasks WHERE status != 'completed' AND due_date < ?`

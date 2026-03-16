@@ -8,8 +8,9 @@ export async function GET(request: Request) {
     const search = searchParams.get('search');
     const data = search ? searchTalent(search) : getAllTalent();
     return NextResponse.json({ success: true, data });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch talent:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -23,7 +24,8 @@ export async function POST(request: Request) {
 
     const talent = createTalent(result.data as any);
     return NextResponse.json({ success: true, data: talent }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to create talent:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

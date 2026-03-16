@@ -25,7 +25,10 @@ export function createChange(data: Partial<ChangeEntry> & { deal_id: string; fie
   return db.prepare('SELECT * FROM deal_changes WHERE id = ?').get(id) as ChangeEntry;
 }
 
+const VALID_CHANGE_STATUSES = new Set(['pending_review', 'approved', 'reverted']);
+
 export function resolveChange(id: string, status: string, reviewedBy: string): ChangeEntry | null {
+  if (!VALID_CHANGE_STATUSES.has(status)) throw new Error(`Invalid change status: ${status}`);
   const db = getDb();
   if (!db.prepare('SELECT id FROM deal_changes WHERE id = ?').get(id)) return null;
   db.prepare('UPDATE deal_changes SET status = ?, reviewed_by = ?, reviewed_at = ? WHERE id = ?').run(status, reviewedBy, getCurrentTimestamp(), id);

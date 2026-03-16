@@ -67,18 +67,22 @@ export function updateTemplate(id: string, data: {
   template_data?: TemplateData;
 }): DealTemplate | null {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM deal_templates WHERE id = ?').get(id);
-  if (!existing) return null;
+  if (!db.prepare('SELECT id FROM deal_templates WHERE id = ?').get(id)) return null;
 
-  if (data.name !== undefined) {
-    db.prepare('UPDATE deal_templates SET name = ? WHERE id = ?').run(data.name, id);
-  }
-  if (data.description !== undefined) {
-    db.prepare('UPDATE deal_templates SET description = ? WHERE id = ?').run(data.description, id);
-  }
-  if (data.template_data !== undefined) {
-    db.prepare('UPDATE deal_templates SET template_data = ? WHERE id = ?').run(JSON.stringify(data.template_data), id);
-  }
+  const now = getCurrentTimestamp();
+  const fields: string[] = [];
+  const values: unknown[] = [];
+
+  if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
+  if (data.description !== undefined) { fields.push('description = ?'); values.push(data.description); }
+  if (data.template_data !== undefined) { fields.push('template_data = ?'); values.push(JSON.stringify(data.template_data)); }
+
+  if (fields.length === 0) return db.prepare('SELECT * FROM deal_templates WHERE id = ?').get(id) as DealTemplate;
+
+  fields.push('updated_at = ?');
+  values.push(now);
+  values.push(id);
+  db.prepare(`UPDATE deal_templates SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   return db.prepare('SELECT * FROM deal_templates WHERE id = ?').get(id) as DealTemplate;
 }
 

@@ -220,7 +220,8 @@ export function searchTalent(query: string): Talent[] {
     .prepare(
       `SELECT * FROM talent
        WHERE name LIKE ? OR category LIKE ? OR location LIKE ?
-       ORDER BY name ASC`
+       ORDER BY name ASC
+       LIMIT 10`
     )
     .all(pattern, pattern, pattern) as Record<string, unknown>[];
   return rows.map(parseTalentRow);

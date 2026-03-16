@@ -5,14 +5,16 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   try {
     const licenses = getLicensesByDeal(params.id);
     return NextResponse.json({ success: true, data: licenses });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch music licenses:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
-    const body = await request.json();
+    let body;
+    try { body = await request.json(); } catch { return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 }); }
 
     // If action is 'populate', auto-create from song rights holders
     if (body.action === 'populate' && body.song_id) {
@@ -23,7 +25,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
     // Otherwise create a single license entry
     const license = createLicense({ ...body, deal_id: params.id });
     return NextResponse.json({ success: true, data: license }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to create music license:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -83,7 +83,8 @@ export async function GET(
       music_documents,
       uploaded_documents: uploadedDocuments,
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch documents:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

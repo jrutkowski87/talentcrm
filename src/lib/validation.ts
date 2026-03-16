@@ -183,12 +183,8 @@ export function validate(
     return { valid: false, errors };
   }
 
-  // Pass through any body fields NOT in the schema so callers can forward
-  // extra known fields (like client_id, talent_id, etc.) without listing
-  // every possible column. Schema fields take precedence.
-  const merged: Record<string, unknown> = { ...body, ...data };
-
-  return { valid: true, data: merged };
+  // Only return schema-defined fields — never pass through unknown keys.
+  return { valid: true, data };
 }
 
 // ---------------------------------------------------------------------------
@@ -217,19 +213,62 @@ const DEAL_TYPES = ['talent', 'music', 'talent_and_music'] as const;
 export const dealCreateSchema: Schema = {
   deal_name:      { type: 'string', required: true, maxLength: 300 },
   client_id:      { type: 'string', required: true },
+  sub_brand_id:   { type: 'string' },
+  talent_id:      { type: 'string' },
+  song_id:        { type: 'string' },
   campaign_name:  { type: 'string', maxLength: 300 },
   deal_type:      { type: 'string', oneOf: [...DEAL_TYPES] },
   status:         { type: 'string', oneOf: [...ALL_DEAL_STATUSES] },
+  // Fees
   fee_total:      { type: 'number', min: 0 },
   fee_currency:   { type: 'string', maxLength: 10 },
   fee_structure:  { type: 'string', maxLength: 200 },
+  fee_net_terms:  { type: 'string', maxLength: 200 },
   fee_mfn:        { type: 'boolean' },
+  fee_mfn_details: { type: 'string', maxLength: 2000 },
+  fee_ancillary:  { type: 'string', maxLength: 2000 },
+  fee_per_side:   { type: 'number', min: 0 },
+  master_fee_override: { type: 'number', min: 0 },
+  // Terms
   non_union:      { type: 'boolean' },
   confidential:   { type: 'boolean' },
   morals_clause:  { type: 'boolean' },
+  morals_clause_details: { type: 'string', maxLength: 2000 },
   term_duration:  { type: 'string', maxLength: 200 },
   term_duration_weeks: { type: 'number', min: 0 },
+  term_start_trigger: { type: 'string', maxLength: 200 },
   governing_law:  { type: 'string', maxLength: 200 },
+  termination_cure_days: { type: 'number', min: 0, max: 365 },
+  pro_rata_formula: { type: 'string', maxLength: 500 },
+  // Dates
+  effective_date:   { type: 'string', format: 'date' },
+  term_start_date:  { type: 'string', format: 'date' },
+  term_end_date:    { type: 'string', format: 'date' },
+  usage_start_date: { type: 'string', format: 'date' },
+  usage_end_date:   { type: 'string', format: 'date' },
+  // Parties
+  lender_entity:      { type: 'string', maxLength: 300 },
+  lender_address:     { type: 'string', maxLength: 500 },
+  company_signatory:  { type: 'string', maxLength: 300 },
+  talent_signatory:   { type: 'string', maxLength: 300 },
+  notice_emails:      { type: 'string', maxLength: 500 },
+  // Materials
+  materials_stills_count: { type: 'number', min: 0 },
+  materials_edits_versions: { type: 'boolean' },
+  materials_alternate_assets: { type: 'string', maxLength: 2000 },
+  post_term_rules: { type: 'string', maxLength: 2000 },
+  // Exclusivity
+  exclusivity_category: { type: 'string', maxLength: 200 },
+  exclusivity_duration: { type: 'string', maxLength: 200 },
+  // Music
+  license_type:   { type: 'string', oneOf: ['master', 'sync', 'master_and_sync'] },
+  territory:      { type: 'string', maxLength: 200 },
+  usage_description: { type: 'string', maxLength: 2000 },
+  music_status:   { type: 'string' },
+  // Admin
+  w9_received:    { type: 'boolean' },
+  invoice_received: { type: 'boolean' },
+  // JSON / Array fields
   service_days:   { type: 'array' },
   fee_payments:   { type: 'array' },
   exclusivity_brands: { type: 'array' },
@@ -243,6 +282,8 @@ export const dealCreateSchema: Schema = {
   hmu:            { type: 'object' },
   talent_criteria: { type: 'object' },
   offer_snapshot: { type: 'object' },
+  fee_revenue_share: { type: 'object' },
+  brief_parsed_data: { type: 'object' },
 };
 
 export const talentCreateSchema: Schema = {
@@ -298,6 +339,9 @@ export const rightsHolderCreateSchema: Schema = {
   contact_title: { type: 'string', maxLength: 200 },
   address:     { type: 'string', maxLength: 500 },
   notes:       { type: 'string', maxLength: 5000 },
+  avg_response_days: { type: 'number', min: 0 },
+  deals_offered: { type: 'number', min: 0 },
+  deals_closed:  { type: 'number', min: 0 },
 };
 
 export const repCreateSchema: Schema = {

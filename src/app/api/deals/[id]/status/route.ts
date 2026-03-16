@@ -34,7 +34,7 @@ const STAGE_TASKS: Record<string, { title: string; priority?: string; daysFromNo
 };
 
 // Pipeline order for gate enforcement
-const PIPELINE_ORDER: DealStatus[] = [
+const TALENT_PIPELINE: DealStatus[] = [
   'creative_brief',
   'outreach',
   'shortlist',
@@ -47,13 +47,29 @@ const PIPELINE_ORDER: DealStatus[] = [
   'complete',
 ];
 
-function stageIndex(status: DealStatus): number {
-  return PIPELINE_ORDER.indexOf(status);
+const MUSIC_PIPELINE: DealStatus[] = [
+  'music_brief',
+  'song_pitching',
+  'song_selection',
+  'rights_negotiation',
+  'license_drafting',
+  'music_admin',
+  'delivery',
+  'complete',
+];
+
+/** All valid statuses across both pipelines. */
+const ALL_VALID_STATUSES = new Set([...TALENT_PIPELINE, ...MUSIC_PIPELINE, 'archived', 'dead']);
+
+function stageIndex(status: DealStatus, dealType?: string): number {
+  const pipeline = dealType === 'music' ? MUSIC_PIPELINE : TALENT_PIPELINE;
+  return pipeline.indexOf(status);
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
-    const body = await request.json();
+    let body;
+    try { body = await request.json(); } catch { return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 }); }
     const { status, approval_by, approval_notes, force } = body;
 
     const deal = getDealById(params.id);
@@ -61,13 +77,19 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ success: false, error: 'Deal not found' }, { status: 404 });
     }
 
-    const targetIdx = stageIndex(status as DealStatus);
+    // Validate the status is a known pipeline stage
+    if (!ALL_VALID_STATUSES.has(status)) {
+      return NextResponse.json({ success: false, error: `Invalid status: ${status}` }, { status: 400 });
+    }
+
+    const targetIdx = stageIndex(status as DealStatus, deal.deal_type);
 
     // Allow moving to 'archived' or 'dead' from anywhere
     if (status !== 'archived' && status !== 'dead' && !force) {
-      // Gate 1: Cannot advance past approval_to_offer without approval
+      // Gate 1: Cannot advance past approval_to_offer without approval (talent pipeline only)
       if (
-        targetIdx >= stageIndex('negotiation') &&
+        deal.deal_type !== 'music' &&
+        targetIdx >= stageIndex('negotiation', deal.deal_type) &&
         !deal.approval_to_engage_at
       ) {
         // If approval credentials are provided, grant approval and proceed
@@ -102,9 +124,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         }
       }
 
-      // Gate 2: Cannot advance past talent_buyin without offer acceptance
+      // Gate 2: Cannot advance past talent_buyin without offer acceptance (talent pipeline only)
       if (
-        targetIdx >= stageIndex('contract_drafting') &&
+        deal.deal_type !== 'music' &&
+        targetIdx >= stageIndex('contract_drafting', deal.deal_type) &&
         !deal.offer_accepted_at
       ) {
         return NextResponse.json(
@@ -117,9 +140,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         );
       }
 
-      // Gate 3: Cannot advance past contract_drafting without contract execution
+      // Gate 3: Cannot advance past contract_drafting without contract execution (talent pipeline only)
       if (
-        targetIdx >= stageIndex('admin_logistics') &&
+        deal.deal_type !== 'music' &&
+        targetIdx >= stageIndex('admin_logistics', deal.deal_type) &&
         !deal.contract_executed_at
       ) {
         return NextResponse.json(
@@ -160,7 +184,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to update deal status:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

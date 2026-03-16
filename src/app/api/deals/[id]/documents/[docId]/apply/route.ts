@@ -59,7 +59,8 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Deal not found' }, { status: 404 });
     }
 
-    const body = await request.json();
+    let body;
+    try { body = await request.json(); } catch { return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 }); }
     const selectedFields: string[] = body.fields || [];
 
     if (selectedFields.length === 0) {
@@ -113,7 +114,8 @@ export async function POST(
     // Return fresh deal data
     const updatedDeal = getDealById(params.id);
     return NextResponse.json({ success: true, data: updatedDeal });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to apply document fields:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

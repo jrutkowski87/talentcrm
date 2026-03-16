@@ -3,7 +3,8 @@
  */
 
 /** Convert snake_case to Title Case (e.g. 'creative_brief' → 'Creative Brief') */
-export function snakeToTitle(str: string): string {
+export function snakeToTitle(str: string | null | undefined): string {
+  if (!str) return '';
   return str
     .split('_')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -11,19 +12,34 @@ export function snakeToTitle(str: string): string {
 }
 
 /** Format a number as USD currency (e.g. 50000 → '$50,000') */
-export function formatCurrency(amount: number | null, currency = 'USD'): string {
-  if (amount == null) return '—';
+export function formatCurrency(amount: number | null | undefined, currency = 'USD'): string {
+  if (amount == null || !Number.isFinite(amount)) return '—';
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    maximumFractionDigits: 2,
   }).format(amount);
+}
+
+/**
+ * Normalise a date string for reliable parsing.
+ * SQLite CURRENT_TIMESTAMP produces 'YYYY-MM-DD HH:MM:SS' (UTC, no indicator).
+ * Appending 'Z' tells the JS Date parser it's UTC.
+ */
+function normaliseDateString(dateString: string): string {
+  // Already has timezone info → use as-is
+  if (/[Z+\-]\d{0,4}$/.test(dateString)) return dateString;
+  // SQLite format (space-separated, no T) → append Z
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(dateString)) return dateString + 'Z';
+  return dateString;
 }
 
 /** Relative time string (e.g. '2 hours ago', '3 days ago') */
 export function relativeTime(dateString: string): string {
-  const diffMs = Date.now() - new Date(dateString).getTime();
+  const parsed = new Date(normaliseDateString(dateString)).getTime();
+  if (isNaN(parsed)) return '\u2014';
+  const diffMs = Date.now() - parsed;
   if (diffMs < 0) return 'upcoming';
   const mins = Math.floor(diffMs / 60000);
   const hours = Math.floor(mins / 60);

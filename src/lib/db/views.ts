@@ -79,22 +79,23 @@ export function updateView(id: string, data: {
   is_default?: boolean;
 }): SavedView | null {
   const db = getDb();
-  const existing = db.prepare('SELECT * FROM saved_views WHERE id = ?').get(id);
-  if (!existing) return null;
+  if (!db.prepare('SELECT id FROM saved_views WHERE id = ?').get(id)) return null;
 
-  if (data.name !== undefined) {
-    db.prepare('UPDATE saved_views SET name = ? WHERE id = ?').run(data.name, id);
-  }
-  if (data.description !== undefined) {
-    db.prepare('UPDATE saved_views SET description = ? WHERE id = ?').run(data.description, id);
-  }
-  if (data.filter_data !== undefined) {
-    db.prepare('UPDATE saved_views SET filter_data = ? WHERE id = ?').run(JSON.stringify(data.filter_data), id);
-  }
-  if (data.is_default !== undefined) {
-    db.prepare('UPDATE saved_views SET is_default = ? WHERE id = ?').run(data.is_default ? 1 : 0, id);
-  }
+  const now = getCurrentTimestamp();
+  const fields: string[] = [];
+  const values: unknown[] = [];
 
+  if (data.name !== undefined) { fields.push('name = ?'); values.push(data.name); }
+  if (data.description !== undefined) { fields.push('description = ?'); values.push(data.description); }
+  if (data.filter_data !== undefined) { fields.push('filter_data = ?'); values.push(JSON.stringify(data.filter_data)); }
+  if (data.is_default !== undefined) { fields.push('is_default = ?'); values.push(data.is_default ? 1 : 0); }
+
+  if (fields.length === 0) return db.prepare('SELECT * FROM saved_views WHERE id = ?').get(id) as SavedView;
+
+  fields.push('updated_at = ?');
+  values.push(now);
+  values.push(id);
+  db.prepare(`UPDATE saved_views SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   return db.prepare('SELECT * FROM saved_views WHERE id = ?').get(id) as SavedView;
 }
 

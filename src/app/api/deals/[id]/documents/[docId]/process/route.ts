@@ -31,13 +31,15 @@ export async function POST(
     try {
       const buffer = fs.readFileSync(filePath);
       extractedText = await extractText(buffer, doc.file_type as 'pdf' | 'docx' | 'txt' | 'doc');
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error('Text extraction failed:', err);
+      const msg = err instanceof Error ? err.message : 'Unknown error';
       updateDocument(doc.id, {
         upload_status: 'error',
-        error_message: `Text extraction failed: ${err.message}`,
+        error_message: `Text extraction failed: ${msg}`,
       });
       return NextResponse.json(
-        { success: false, error: `Text extraction failed: ${err.message}` },
+        { success: false, error: 'Text extraction failed' },
         { status: 500 }
       );
     }
@@ -61,17 +63,20 @@ export async function POST(
     let parsedData: any;
     try {
       parsedData = await parseBrief(extractedText, { useAI: true });
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error('AI parsing failed, falling back to rules:', err);
       // Fallback to rule-based if AI fails
       try {
         parsedData = await parseBrief(extractedText, { useAI: false });
-      } catch (err2: any) {
+      } catch (err2: unknown) {
+        console.error('Rule-based parsing also failed:', err2);
+        const msg = err2 instanceof Error ? err2.message : 'Unknown error';
         updateDocument(doc.id, {
           upload_status: 'error',
-          error_message: `Parsing failed: ${err2.message}`,
+          error_message: `Parsing failed: ${msg}`,
         });
         return NextResponse.json(
-          { success: false, error: `Parsing failed: ${err2.message}` },
+          { success: false, error: 'Parsing failed' },
           { status: 500 }
         );
       }
@@ -84,7 +89,8 @@ export async function POST(
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to process document:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -29,7 +29,7 @@ export function addNote(data: { deal_id: string; content: string; created_by?: s
 export function updateNote(id: string, content: string): DealNote | null {
   const db = getDb();
   if (!db.prepare('SELECT id FROM deal_notes WHERE id = ?').get(id)) return null;
-  db.prepare('UPDATE deal_notes SET content = ? WHERE id = ?').run(content, id);
+  db.prepare('UPDATE deal_notes SET content = ?, updated_at = ? WHERE id = ?').run(content, getCurrentTimestamp(), id);
   return db.prepare('SELECT * FROM deal_notes WHERE id = ?').get(id) as DealNote;
 }
 

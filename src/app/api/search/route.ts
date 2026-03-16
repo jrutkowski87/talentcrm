@@ -59,7 +59,8 @@ export async function GET(request: Request) {
       success: true,
       data: { deals, talent, clients, reps, songs, rightsHolders },
     });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to search:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -85,21 +85,30 @@ export function createLicense(data: {
   return db.prepare(`${SELECT_WITH_RH} WHERE ml.id = ?`).get(id) as MusicLicense;
 }
 
+const LICENSE_UPDATABLE = new Set([
+  'deal_id', 'song_id', 'rights_holder_id', 'side', 'share_percentage',
+  'fee_amount', 'fee_override', 'license_status', 'license_number',
+  'contact_name', 'contact_email', 'notes', 'signed_date',
+]);
+
 export function updateLicense(id: string, data: Partial<MusicLicense>): MusicLicense | undefined {
   const db = getDb();
   const existing = db.prepare('SELECT id FROM deal_music_licenses WHERE id = ?').get(id);
   if (!existing) return undefined;
 
-  const { id: _id, created_at: _ca, updated_at: _ua, rights_holder_name: _n, rights_holder_type: _t, ...updateData } = data as any;
   const now = getCurrentTimestamp();
+  const fields: string[] = [];
+  const values: unknown[] = [];
 
-  const fields = Object.keys(updateData);
+  for (const [key, val] of Object.entries(data)) {
+    if (LICENSE_UPDATABLE.has(key)) { fields.push(`${key} = ?`); values.push(val); }
+  }
   if (fields.length === 0) return db.prepare(`${SELECT_WITH_RH} WHERE ml.id = ?`).get(id) as MusicLicense;
 
-  const setClause = fields.map((f) => `${f} = ?`).join(', ');
-  const values = fields.map((f) => updateData[f]);
-
-  db.prepare(`UPDATE deal_music_licenses SET ${setClause}, updated_at = ? WHERE id = ?`).run(...values, now, id);
+  fields.push('updated_at = ?');
+  values.push(now);
+  values.push(id);
+  db.prepare(`UPDATE deal_music_licenses SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   return db.prepare(`${SELECT_WITH_RH} WHERE ml.id = ?`).get(id) as MusicLicense;
 }
 
@@ -182,12 +191,15 @@ export function recalculateFees(dealId: string): MusicLicense[] {
 
   const licenses = db.prepare('SELECT * FROM deal_music_licenses WHERE deal_id = ?').all(dealId) as MusicLicense[];
 
-  for (const lic of licenses) {
-    if (lic.fee_override !== null) continue; // skip manually overridden fees
-    const sideFee = lic.side === 'master' ? masterFee : publishingFee;
-    const feeAmount = sideFee * (lic.share_percentage / 100);
-    db.prepare('UPDATE deal_music_licenses SET fee_amount = ?, updated_at = ? WHERE id = ?').run(feeAmount, now, lic.id);
-  }
+  const recalc = db.transaction(() => {
+    for (const lic of licenses) {
+      if (lic.fee_override !== null) continue; // skip manually overridden fees
+      const sideFee = lic.side === 'master' ? masterFee : publishingFee;
+      const feeAmount = sideFee * (lic.share_percentage / 100);
+      db.prepare('UPDATE deal_music_licenses SET fee_amount = ?, updated_at = ? WHERE id = ?').run(feeAmount, now, lic.id);
+    }
+  });
+  recalc();
 
   return db.prepare(`${SELECT_WITH_RH} WHERE ml.deal_id = ? ORDER BY ml.side, ml.share_percentage DESC`).all(dealId) as MusicLicense[];
 }

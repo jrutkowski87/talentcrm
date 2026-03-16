@@ -8,8 +8,9 @@ export async function GET(request: Request) {
     const q = searchParams.get('q');
     const songs = q ? searchSongs(q) : getAllSongs();
     return NextResponse.json({ success: true, data: songs });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch songs:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -23,7 +24,8 @@ export async function POST(request: Request) {
 
     const song = createSong(result.data);
     return NextResponse.json({ success: true, data: song }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to create song:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

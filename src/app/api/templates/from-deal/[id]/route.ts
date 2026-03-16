@@ -26,7 +26,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ success: false, error: 'Deal not found' }, { status: 404 });
     }
 
-    const body = await req.json();
+    let body;
+    try { body = await req.json(); } catch { return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 }); }
     if (!body.name || !body.name.trim()) {
       return NextResponse.json({ success: false, error: 'Template name is required' }, { status: 400 });
     }
@@ -49,7 +50,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     });
 
     return NextResponse.json({ success: true, data: template }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to create template from deal:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

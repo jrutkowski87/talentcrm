@@ -57,7 +57,7 @@ export function addToShortlist(data: Partial<ShortlistEntry> & { deal_id: string
   db.prepare(
     `INSERT INTO deal_talent_shortlist (id, deal_id, talent_id, submitted_by_rep_id, estimated_rate, availability, availability_status, interest_level, rep_notes, your_notes, red_flags, fit_score, fit_scorecard, status, passed_reason, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  ).run(id, data.deal_id, data.talent_id, data.submitted_by_rep_id ?? null, data.estimated_rate ?? null, data.availability ?? null, data.availability_status ?? 'unknown', data.interest_level ?? 'unknown', data.rep_notes ?? null, data.your_notes ?? null, data.red_flags ?? null, data.fit_score ?? null, JSON.stringify(data.fit_scorecard ?? {}), data.status ?? 'considering', data.passed_reason ?? null, now, now);
+  ).run(id, data.deal_id, data.talent_id, data.submitted_by_rep_id ?? null, data.estimated_rate ?? null, data.availability ?? null, data.availability_status ?? 'unknown', data.interest_level ?? 'unknown', data.rep_notes ?? null, data.your_notes ?? null, data.red_flags ?? null, data.fit_score ?? null, data.fit_scorecard ? JSON.stringify(data.fit_scorecard) : null, data.status ?? 'considering', data.passed_reason ?? null, now, now);
 
   const row = db.prepare(
     `SELECT s.*, t.name AS talent_name, t.category AS talent_category, t.social_handles AS talent_social_handles, t.location AS talent_location, t.rate_range AS talent_rate_range, r.name AS rep_name, r.agency AS rep_agency

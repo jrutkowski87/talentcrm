@@ -8,12 +8,18 @@ import fs from 'fs';
 const PROJECT_ROOT = process.cwd();
 const UPLOADS_DIR = path.join(PROJECT_ROOT, 'data', 'uploads');
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+const UUID_RE = /^[a-f0-9-]{36}$/;
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Validate deal ID format to prevent path traversal
+    if (!UUID_RE.test(params.id)) {
+      return NextResponse.json({ success: false, error: 'Invalid deal ID' }, { status: 400 });
+    }
+
     const deal = getDealById(params.id);
     if (!deal) {
       return NextResponse.json({ success: false, error: 'Deal not found' }, { status: 404 });
@@ -50,8 +56,8 @@ export async function POST(
       fs.mkdirSync(dealUploadDir, { recursive: true });
     }
 
-    // Generate unique filename
-    const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
+    // Generate unique filename — derive extension from validated file type
+    const ext = fileType;
     const { v4: uuidv4 } = await import('uuid');
     const storedFilename = `${uuidv4()}.${ext}`;
 
@@ -69,8 +75,9 @@ export async function POST(
       file_size: file.size,
     });
 
-    return NextResponse.json({ success: true, data: doc });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, data: doc }, { status: 201 });
+  } catch (error: unknown) {
+    console.error('Document upload failed:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

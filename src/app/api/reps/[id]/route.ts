@@ -6,19 +6,22 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     const rep = getRepById(params.id);
     if (!rep) return NextResponse.json({ success: false, error: 'Rep not found' }, { status: 404 });
     return NextResponse.json({ success: true, data: rep });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch rep:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
-    const body = await request.json();
+    let body;
+    try { body = await request.json(); } catch { return NextResponse.json({ success: false, error: 'Invalid JSON body' }, { status: 400 }); }
     const rep = updateRep(params.id, body);
     if (!rep) return NextResponse.json({ success: false, error: 'Rep not found' }, { status: 404 });
     return NextResponse.json({ success: true, data: rep });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to update rep:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -27,7 +30,8 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     const ok = deleteRep(params.id);
     if (!ok) return NextResponse.json({ success: false, error: 'Rep not found' }, { status: 404 });
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to delete rep:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

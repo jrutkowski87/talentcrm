@@ -4,7 +4,7 @@ import { getDb } from '@/lib/db';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 50);
+    const limit = Math.max(1, Math.min(parseInt(searchParams.get('limit') || '20') || 20, 50));
 
     const db = getDb();
     const entries = db.prepare(`
@@ -26,7 +26,8 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json({ success: true, data: parsed });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch activity:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

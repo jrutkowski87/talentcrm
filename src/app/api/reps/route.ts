@@ -6,8 +6,9 @@ export async function GET() {
   try {
     const reps = getAllReps();
     return NextResponse.json({ success: true, data: reps });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to fetch reps:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -21,7 +22,8 @@ export async function POST(request: Request) {
 
     const rep = createRep(result.data);
     return NextResponse.json({ success: true, data: rep }, { status: 201 });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    console.error('Failed to create rep:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
